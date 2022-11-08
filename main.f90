@@ -10,21 +10,18 @@ program advection
   use nisl_2step_module, only: nisl_2step_init, nisl_2step_timeint, nisl_2step_clean
   use direction_module, only: direction_init, direction_timeint, direction_clean
   use direction_2step_module, only: direction_2step_init, direction_2step_timeint, direction_2step_clean
-  use field_module, only : field_init
   use analysis_module, only: error_log
 
   implicit none
 
   call planet_init()
   call grid_init()
-  call field_init()
   select case(model)
     case("euler ")
       call eulerian_init()
       call eulerian_timeint()
       call eulerian_clean()
     case("slag  ")
-      write(*,*) "hi"
       call semilag_init()
       call semilag_timeint()
       call semilag_clean()

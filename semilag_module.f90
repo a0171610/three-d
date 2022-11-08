@@ -2,7 +2,6 @@ module semilag_module
 
   use grid_module, only: nlon, nlat, ntrunc, gphi_, &
     gu, gv, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
-  use field_module, only : X, Y
   use time_module, only: velocity
   private
   

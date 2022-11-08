@@ -2,7 +2,6 @@ module nisl_module
 
   use grid_module, only: nlon, nlat, ntrunc, &
     gu, gv, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
-  use field_module, only : X, Y
   use mass_module, only: mass_correct
   use time_module, only: conserve, velocity
   private

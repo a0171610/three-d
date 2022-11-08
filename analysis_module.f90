@@ -1,6 +1,5 @@
 module analysis_module
   use grid_module, only: gphi, gphi_initial, lat, wgt, lon, ntrunc, Umax
-  use field_module, only: X, Y
   use legendre_transform_module, only: legendre_analysis
   use math_module, only: math_pi
   use planet_module, only: planet_radius
