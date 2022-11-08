@@ -1,0 +1,13 @@
+module time_module
+  implicit none
+  private
+
+  integer(8), public, parameter ::  nstep = 200, hstep = 5
+  !integer(8), public ::  nstep = 80, hstep = 5
+
+  real(8), public, parameter :: deltat = 5.0d0/dble(nstep)
+  !real(8), public :: deltat = 21600.0d0
+
+  character(len=15), public :: model = "slag", imethod = "sph", velocity = "nodiv", field = "cbell2"
+  logical, public :: conserve = .false.
+end module time_module

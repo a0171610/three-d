@@ -1,0 +1,6 @@
+adv
+*.mod
+*.o
+*.txt
+*.gif
+.vscode
