@@ -1,96 +1,96 @@
 module uv_module
+  use math_module, only: pi=>math_pi, pi2=>math_pi2
   implicit none
   private
 
-  public :: uv_sbody, uv_nodiv, uv_div
+  real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0, pt = 254.944d0, p0 = 1000.0d0, b = 0.2d0, tau = 1036800.0d0, rad = 6.37122d6
+
+  public :: uv_div, calc_omega, calc_ua, calc_ud, calc_va
 
 contains
 
-  subroutine uv_sbody(lon,lat,gu,gv)
-    use planet_module, only: d=>day_in_sec
-    use math_module, only: pi2=>math_pi2, deg2rad=>math_deg2rad
-    implicit none
-
-    real(8), dimension(:), intent(in) :: lon, lat
-    real(8), dimension(:,:), intent(inout) :: gu, gv
-
-    real(8), parameter :: x0 = 0.0d0, y0 = 45.0d0, period = 20.0d0 ! Rotation
-
-    real(8) :: lon0, lat0, omg
-    integer(8) :: i, j, nx, ny
-
-    nx = size(lon)
-    ny = size(lat)
-
-    lon0 = x0*deg2rad
-    lat0 = y0*deg2rad
-    omg = pi2/(period*d)
-    do j=1, ny
-      do i=1, nx
-        gu(i,j) = omg*(cos(lat(j))*sin(lat0)-cos(lon(i)-lon0)*sin(lat(j))*cos(lat0))
-        gv(i,j) = omg*(sin(lon(i)-lon0)*cos(lat0))
-      end do
-    end do
-
-  end subroutine uv_sbody
-
-  subroutine uv_nodiv(t,lon,lat,gu,gv)
-    use math_module, only: pi=>math_pi, pi2=>math_pi2
+  subroutine uv_div(t, lon, lat, pres, gu, gv, gw)
     implicit none
 
     real(8), intent(in) :: t
-    real(8), dimension(:), intent(in) :: lon, lat
-    real(8), dimension(:,:), intent(inout) :: gu, gv
+    real(8), dimension(:), intent(in) :: lon, lat, pres
+    real(8), dimension(:, :, :), intent(inout) :: gu, gv, gw
+    real(8), allocatable :: gua(:, :, :), gva(:, :, :), gud(:, :, :)
 
-    real(8), parameter :: t1 = 5.0d0, kappa = 2.0d0
-
-    real(8) :: lambda1, pt1, ptt1, kcosptt1
-    integer(8) :: i, j, nx, ny
+    integer(8) :: i, j, k, nx, ny, nz
 
     nx = size(lon)
     ny = size(lat)
+    nz = size(pres)
 
-    pt1 = pi2/t1
-    ptt1 = pt1*t
-    kcosptt1 = kappa*cos(pi*t/t1)
-    do j=1, ny
-      do i=1, nx
-        lambda1 = lon(i) - ptt1
-        gu(i,j) = (sin(lambda1)**2*sin(2.0d0*lat(j))*kcosptt1 + pt1*cos(lat(j)))
-        gv(i,j) = sin(2.0d0*lambda1)*cos(lat(j))*kcosptt1
+    allocate(gua(nx, ny, nz), gva(nx, ny, nz), gud(nx, ny, nz))
+
+    do i = 1, nx
+      do j = 1, ny
+        do k = 1, nz
+          gua(i, j, k) = calc_ua(lon(i), lat(j), t)
+          gva(i, j, k) = calc_va(lon(i), lat(j), t)
+          gud(i, j, k) = calc_ud(lon(i), lat(j), pres(k), t)
+          gw(i, j, k) = calc_omega(lon(i), lat(j), pres(k), t)
+        end do
       end do
     end do
 
-  end subroutine uv_nodiv
+    gua(:, :, :) = gua(:, :, :)
+    gva(:, :, :) = gva(:, :, :)
 
-  subroutine uv_div(t,lon,lat,gu,gv)
-    use math_module, only: pi=>math_pi, pi2=>math_pi2
-    use planet_module, only: day_in_sec
-    implicit none
-
-    real(8), intent(in) :: t
-    real(8), dimension(:), intent(in) :: lon, lat
-    real(8), dimension(:,:), intent(inout) :: gu, gv
-
-    real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0
-
-    real(8) :: lambda1, pt1, ptt1, kcosptt1
-    integer(8) :: i, j, nx, ny
-
-    nx = size(lon)
-    ny = size(lat)
-
-    pt1 = pi2/t1
-    ptt1 = pt1*t
-    kcosptt1 = kappa*cos(pi*t/t1)
-    do j=1, ny
-      do i=1, nx
-        lambda1 = lon(i) - ptt1
-        gu(i,j) = (-sin(0.5d0*lambda1)**2*sin(2.0d0*lat(j))*cos(lat(j))**2*kcosptt1 + pt1*cos(lat(j))) / (12.0d0 * day_in_sec)
-        gv(i,j) = (0.5d0*sin(lambda1)*cos(lat(j))**3*kcosptt1) / (12.0d0 * day_in_sec)
-      end do
-    end do
+    gu = gua + gud
+    gv = gva
 
   end subroutine uv_div
+
+  function calc_ua(lon, lat, t) result(ans)
+    implicit none
+    real(8), intent(in) :: lon, lat, t
+    real(8) :: ans
+    real(8) :: lambda1
+
+    lambda1 = lon - 2.0d0 * pi * t / tau
+    ans = 10.0d0  * sin(lambda1)**2 * sin(2.0d0*lat) * cos(pi*t/tau) + 2.0d0*pi*cos(lat)
+    ans = ans * rad / tau
+  end function calc_ua
+
+  function calc_ud(lon, lat, p, t) result(ans)
+    implicit none
+    real(8), intent(in) :: lon, lat, p, t
+    real(8) :: ans
+    real(8) :: lambda1, tmp, omega1
+
+    lambda1 = lon - 2.0d0 * pi * t / tau
+    tmp = exp((pt - p) / (b * pt)) - exp((p - p0) / (b * pt))
+    omega1 = 23000.0d0 * pi / tau
+    ans = omega1 * rad * cos(lambda1) * cos(lat)**2 * cos(2.0d0*pi*t/tau) * tmp
+    ans = ans / (b * pt)
+
+  end function calc_ud
+
+  function calc_va(lon, lat, t) result(ans)
+    implicit none
+    real(8), intent(in) :: lon, lat, t
+    real(8) :: ans
+    real(8) :: lambda1
+
+    lambda1 = lon - 2.0d0 * pi * t / tau
+
+    ans = (10.0d0 * rad / tau) * sin(2.0d0*lambda1) * cos(lat) * cos(pi * t / tau)
+  end function calc_va
+
+  function calc_omega(lon, lat, p, t) result(ans)
+    implicit none
+    real(8), intent(in) :: lon, lat, p, t
+    real(8) :: ans
+    real(8) :: tmp
+    real(8) :: omega1
+
+    omega1 = 23000.0d0 * pi / tau
+
+    tmp = 1.0d0 + exp((pt - p0) / (b*pt)) - exp((p-p0) / (b*pt)) - exp((pt-p) / (b*pt))
+    ans = omega1 * sin(lon) * cos(lat) * cos(2.0d0*pi*t/tau) * tmp
+  end function calc_omega
 
 end module uv_module

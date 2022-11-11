@@ -2,17 +2,16 @@ module grid_module
   implicit none
   private
 
-  integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60, nz = 60
+  integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60, nz = 61
   !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
   !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
-  complex(8), dimension(:,:), allocatable, public :: sphi, sphi_old
-  real(8), dimension(:,:), allocatable, public :: gphi, gphi_initial, gu, gv
-  real(8), allocatable, public :: gphi_(:, :, :)
-  real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, pres, sigma, height
+  complex(8), dimension(:, :, :), allocatable, public :: sphi, sphi_old
+  real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gw
+  real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, pres, sigma, height, rho
   real(8), public :: Umax, dlat(nlat), dlat4(nlat)
-  real(8), public, parameter :: ps = 1000.0d0
+  real(8), public, parameter :: ps = 1000.0d0, Rd = 287.0d0, T0 = 300.0d0
 
   public :: grid_init, grid_clean, pole_regrid
 
@@ -24,18 +23,18 @@ contains
       legendre_init, legendre_analysis
     use init_module, only: &
       init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2
-    use uv_module, only: uv_sbody, uv_nodiv, uv_div
-    use time_module, only: velocity, field
+    use uv_module, only: uv_div
+    use time_module, only: field
     use planet_module, only: planet_radius, transorm_height_to_pressure
     implicit none
 
 
-    integer(8) :: i, j, m, n
+    integer(8) :: i, j, k, m, n
     real(8) :: dlon, eps
 
-    allocate(lon(nlon), lat(nlat), coslat(nlat), coslatr(nlat), wgt(nlat), pres(nz), sigma(nz), height(nz))
-    allocate(gphi(nlon,nlat), gphi_initial(nlon, nlat), gu(nlon,nlat), gv(nlon,nlat), gphi_(nlon, nlat, nz))
-    allocate(sphi(0:ntrunc,0:ntrunc), sphi_old(0:ntrunc,0:ntrunc))
+    allocate(lon(nlon), lat(nlat), coslat(nlat), coslatr(nlat), wgt(nlat), pres(nz), sigma(nz), height(nz), rho(nz))
+    allocate(gphi(nlon,nlat, nz), gphi_initial(nlon, nlat, nz), gu(nlon,nlat, nz), gv(nlon,nlat, nz))
+    allocate(sphi(0:ntrunc,0:ntrunc, nz), sphi_old(0:ntrunc,0:ntrunc, nz), gw(nlon, nlat, nz))
  
     dlon = pi2/nlon
     do i=1, nlon
@@ -60,46 +59,41 @@ contains
     end do
 
     do i = 1, nz
-      height(i) = 100.0d0 + dble(i - 1) * 200.0d0
+      height(i) = dble(i - 1) * 200.0d0
       pres(i) = transorm_height_to_pressure(height(i))
       sigma(i) = pres(i) / ps
+      rho(i) = pres(i) / (Rd * T0)
     end do
 
     select case(field)
-      case("ghill")
-        call init_ghill(lon,lat,gphi)
-      case("ghill2")
-        call init_ghill2(lon,lat,gphi)
+    !  case("ghill")
+    !    call init_ghill(lon,lat,gphi)
+    !  case("ghill2")
+    !    call init_ghill2(lon,lat,gphi)
       case("cbell2")
-        call init_cbell_2(lon, lat, height, gphi_)
-      case("scyli2")
-        call init_scyli2(lon,lat,gphi)
-      case("ccbell2")
-        call init_ccbel2(lon,lat,gphi)
+        call init_cbell_2(lon, lat, height, gphi)
+    !  case("scyli2")
+    !    call init_scyli2(lon,lat,gphi)
+    !  case("ccbell2")
+    !    call init_ccbel2(lon,lat,gphi)
       case default
         print *, "No matching initial field"
       stop
     end select
 
-    gphi_initial(:, :) = gphi(:, :)
-    call legendre_analysis(gphi, sphi)
-    do m = 0, ntrunc
+    gphi_initial(:, :, :) = gphi(:, :, :)
+    do k = 1, nz
+      call legendre_analysis(gphi(:,:,k), sphi(:,:,k))
+    enddo
+      do m = 0, ntrunc
       do n = m, ntrunc
-        sphi_old(n, m) = sphi(n, m)
+        do k = 1, nz
+          sphi_old(n, m, k) = sphi(n, m, k)
+        enddo
       enddo
     enddo
 
-    select case(velocity)
-    case("sbody")
-      call uv_sbody(lon, lat, gu, gv)
-    case("nodiv")
-      call uv_nodiv(0.0d0, lon, lat, gu, gv)
-    case("div")
-      call uv_div(0.0d0, lon, lat, gu, gv)
-    case default
-      print *, "No matching initial wind"
-      stop
-  end select
+    call uv_div(0.0d0, lon, lat, pres, gu, gv, gw)
 
   Umax = real(maxval(gu) * planet_radius)
 

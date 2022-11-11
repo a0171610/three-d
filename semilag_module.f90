@@ -1,12 +1,13 @@
 module semilag_module
 
-  use grid_module, only: nlon, nlat, ntrunc, gphi_, &
-    gu, gv, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
+  use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, &
+    gu, gv, gw, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
   use time_module, only: velocity
   private
   
-  real(8), dimension(:,:), allocatable, private :: &
-    gphi_old, gphix, gphiy, gphixy, midlon, midlat, deplon, deplat, gphi_initial
+  real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, midpres, deplon, deplat, deppres
+  real(8), dimension(:, :, :), allocatable, private :: gphi_old, gphi_initial, gphix, gphiy, gphixy
+  real(8), dimension(:, :, :), allocatable, private :: gphiz, gphixz, gphiyz, gphixyz
 
   private :: update
   public :: semilag_init, semilag_timeint, semilag_clean
@@ -14,36 +15,38 @@ module semilag_module
 contains
 
   subroutine semilag_init()
-    use interpolate_module, only: interpolate_init
+    use interpolate3d_module, only: interpolate_init
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(8) :: i,j
 
-    allocate(gphi_old(nlon,nlat), gphix(nlon,nlat),gphiy(nlon,nlat),gphixy(nlon,nlat), &
-             midlon(nlon,nlat),midlat(nlon,nlat),deplon(nlon,nlat),deplat(nlon,nlat), gphi_initial(nlon, nlat))
+    allocate(gphi_old(nlon, nlat, nz), gphix(nlon, nlat, nz),gphiy(nlon, nlat, nz),gphixy(nlon, nlat, nz), &
+             midlon(nlon,nlat,nz),midlat(nlon,nlat,nz),deplon(nlon,nlat,nz),deplat(nlon,nlat,nz), gphi_initial(nlon, nlat, nz), &
+             midpres(nlon, nlat, nz), deppres(nlon, nlat, nz))
+    allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
     call interpolate_init(gphi)
 
-    gphi_old(:,:) = gphi(:,:)
-    gphi_initial(:, :) = gphi(:, :)
+    gphi_old(:, :, :) = gphi(:, :, :)
+    gphi_initial(:, :, :) = gphi(:, :, :)
 
-    do i=1, nlon
-      midlon(i,:) = lon(i)
+    do i = 1, nlon
+      midlon(i, :, 1) = lon(i)
     end do
-    do j=1, nlat
-      midlat(:,j) = latitudes(j)
+    do j = 1, nlat
+      midlat(:, j, 1) = latitudes(j)
     end do
     open(11, file="animation.txt")
     do i = 1, nlon
       do j = 1, nlat
-          write(11,*) lon(i), latitudes(j), gphi(i, j)
+          write(11,*) lon(i), latitudes(j), gphi(i, j, 24)
       end do        
     end do
 
   end subroutine semilag_init
 
   subroutine semilag_clean()
-    use interpolate_module, only: interpolate_clean
+    use interpolate3d_module, only: interpolate_clean
     implicit none
 
     deallocate(gphi_old,gphix,gphiy,gphixy,midlon,midlat,deplon,deplat)
@@ -52,19 +55,28 @@ contains
   end subroutine semilag_clean
 
   subroutine semilag_timeint()
+    use math_module, only: pi=>math_pi
     use time_module, only: nstep, deltat, hstep, field
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(8) :: i, j, k
 
-    do i=1, nstep
+    open(10, file="uv.txt")
+    do i = 1, nlon
+      do j = 1, nlat
+        write(10,*) lon(i) * 180.0d0 / pi, latitudes(j) * 180.0d0 / pi, gu(i, j, 25)
+      end do
+    end do
+    close(10)
+
+    do i = 1, 1
       call update((i-0.5d0)*deltat, deltat)
       write(*, *) "step=", i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
         do j = 1, nlon
             do k = 1, nlat
-                write(11,*) lon(j), latitudes(k), gphi(j, k)
+      !          write(11,*) lon(j), latitudes(k), gphi(j, k)
             end do
         end do
       endif
@@ -72,7 +84,7 @@ contains
         open(10, file="log_cbell.txt")
         do j = 1, nlon
           do k = 1, nlat
-            write(10,*) gphi(j, k)
+      !      write(10,*) gphi(j, k)
           enddo
         enddo
         close(10)
@@ -81,7 +93,7 @@ contains
         open(10, file="log_ccbell.txt")
         do j = 1, nlon
           do k = 1, nlat
-            write(10,*) wgt(k), gphi(j, k)
+      !      write(10,*) wgt(k), gphi(j, k)
           enddo
         enddo
         close(10)
@@ -91,14 +103,14 @@ contains
     open(10, file="log.txt")
     do i = 1, nlon
       do j = 1, nlat
-        write(10,*) lon(i), latitudes(j), gphi(i, j)
+      !  write(10,*) lon(i), latitudes(j), gphi(i, j)
       enddo
     enddo
     close(10)
     open(12, file="error.txt")
     do i = 1, nlon
         do j = 1, nlat
-            write(12,*) lon(i), latitudes(j), gphi_initial(i, j) - gphi(i, j)
+      !      write(12,*) lon(i), latitudes(j), gphi_initial(i, j) - gphi(i, j)
         end do
     end do
 
@@ -107,114 +119,74 @@ contains
   subroutine update(t, dt)
     use math_module, only: &
       pi=>math_pi, pir=>math_pir, pih=>math_pih
-    use upstream_module, only: find_points
-    use time_module, only: imethod
-    use uv_module, only: uv_sbody, uv_nodiv, uv_div
-    use interpolate_module, only: &
-      interpolate_set, interpolate_setd, interpolate_setdx, &
-      interpolate_bilinear, interpolate_bicubic, interpolate_polin2, &
-      interpolate_linpol, interpolate_setdx, interpolate_diff
+    use upstream3d_module, only: find_points
+    use uv_module, only: uv_div
+    use interpolate3d_module, only: interpolate_set, interpolate_setd, interpolate_tricubic
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
     implicit none
 
     real(8), intent(in) :: t, dt
 
-    integer(8) :: i, j, m, n
-    real(8) :: eps, dlonr
-    real(8), dimension(nlon) :: gphitmp
+    integer(8) :: i, j, k, m, n
 
-    select case(velocity)
-    case("nodiv")
-      call uv_nodiv(t,lon,latitudes,gu,gv)
-    case("div")
-      call uv_div(t,lon,latitudes,gu,gv)
-    case("sbody")
-      call uv_sbody(lon, latitudes, gu, gv)
-    case default
-      print *, "No matching model for", velocity
-    end select
-    call find_points(gu, gv, 0.5d0*dt, midlon, midlat, deplon, deplat)
-
-    call legendre_synthesis(sphi_old,gphi_old)
-
-    if ((imethod=="sph").or.(imethod=="fdy")) then
-      call legendre_analysis(gphi_old,sphi_old)
-    end if
+    call uv_div(t, lon, latitudes, pres, gu, gv, gw)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, midpres, deplon, deplat, deppres)
+    do k = 1, nz
+      call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
+    enddo
 
 ! calculate spectral derivatives
 
-    if ((imethod=="sph").or.(imethod=="fdy")) then
-      call legendre_synthesis_dlon(sphi_old,gphix)
-    end if
-    if (imethod=="sph") then
-      call legendre_synthesis_dlat(sphi_old,gphiy)
-      call legendre_synthesis_dlonlat(sphi_old,gphixy)
-      do j=1, nlat
-        gphiy(:,j) = gphiy(:,j)*coslatr(j)
-        gphixy(:,j) = gphixy(:,j)*coslatr(j)
-      end do
-    end if
+    do k = 1, nz
+      call legendre_synthesis_dlon(sphi_old(:, :, k), gphix(:, :, k))
+      call legendre_synthesis_dlat(sphi_old(:, :, k), gphiy(:, :, k))
+      call legendre_synthesis_dlonlat(sphi_old(:, :, k), gphixy(:, :, k))
+    enddo
 
-! calculate fd derivatives
+    do k = 2, nz-1
+      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (pres(k+1) - pres(k-1))
+      gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (pres(k+1) - pres(k-1))
+      gphiyz(:, :, k) = (gphiy(:, :, k + 1) - gphiy(:, :, k - 1)) / (pres(k+1) - pres(k-1))
+      gphixyz(:, :, k) = (gphixy(:, :, k + 1) - gphixy(:, :, k - 1)) / (pres(k+1) - pres(k-1))
+    end do
 
-    if (imethod=="fd") then
-! d/dlon
-      dlonr = 0.25d0*nlon*pir
-      gphix(1,:) = dlonr * (gphi_old(2,:) - gphi_old(nlon,:))
-      gphix(nlon,:) = dlonr * (gphi_old(1,:) - gphi_old(nlon-1,:))
-      do i=2, nlon-1
-        gphix(i,:) = dlonr*(gphi_old(i+1,:) - gphi_old(i-1,:))
-      end do
-    end if
-    if ((imethod=="fd").or.(imethod=="fdy")) then
-! d/dphi
-      eps = pih-latitudes(1)
-      gphitmp = cshift(gphi_old(:,1),nlon/2)
-      gphiy(:,1) = (gphitmp-gphi_old(:,2))/(pih+eps-latitudes(2))
-      gphitmp = cshift(gphix(:,1),nlon/2)
-      gphixy(:,1) = (gphitmp-gphix(:,2))/(pih+eps-latitudes(2))
-      gphitmp = cshift(gphi_old(:,nlat),nlon/2)
-      gphiy(:,nlat) = (gphitmp-gphi_old(:,nlat-1))/(-pih-eps-latitudes(nlat-1))
-      gphitmp = cshift(gphix(:,nlat),nlon/2)
-      gphixy(:,nlat) = (gphitmp-gphix(:,nlat-1))/(-pih-eps-latitudes(nlat-1))
-      do j=2, nlat-1
-        gphiy(:,j) = (gphi_old(:,j+1)-gphi_old(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-        gphixy(:,j) = (gphix(:,j+1)-gphix(:,j-1))/(latitudes(j+1)-latitudes(j-1))
-      end do 
-    end if
+    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (pres(2) - pres(1))
+    gphixz(:, :, 1) = (gphix(:, :, 2) - gphix(:, :, 1)) / (pres(2) - pres(1))
+    gphiyz(:, :, 1) = (gphiy(:, :, 2) - gphiy(:, :, 1)) / (pres(2) - pres(1))
+    gphixyz(:, :, 1) = (gphixy(:, :, 2) - gphixy(:, :, 1)) / (pres(2) - pres(1))
+
+    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
+    gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
+    gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
+    gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
+
+    do j = 1, nlat
+      gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
+      gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
+    end do
 
 ! set grids
     call interpolate_set(gphi_old)
-    if (imethod=="spcher") then
-      call interpolate_setdx(gphix)
-    end if
-    if ((imethod=="fd    ").or.(imethod=="sph   ").or. &
-        (imethod=="fdy   ")) then
-      call interpolate_setd(gphix, gphiy, gphixy)
-    end if
-    do j=1, nlat
-      do i=1, nlon
-        select case (imethod)
-          case ("bilin ") ! monotonicity is guranteed
-            call interpolate_bilinear(deplon(i,j), deplat(i,j), gphi(i,j))
-          case ("fd    ", "sph   ", "fdy   ")
-            call interpolate_bicubic(deplon(i,j), deplat(i,j), gphi(i,j))
-          case ("polin2")
-            call interpolate_polin2(deplon(i,j), deplat(i,j), gphi(i,j))
-          case ("linpol")
-            call interpolate_linpol(deplon(i,j), deplat(i,j), gphi(i,j))
-        end select
-      end do
+    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    do j = 1, nlat
+      do i = 1, nlon
+        do k = 1, nz
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deppres(i, j, k), gphi(i,j,k))
+        enddo
+      enddo
     end do
 
-
 ! spectral
-    call legendre_analysis(gphi,sphi)
-    do n=1, ntrunc
-      do m=0, n
-        sphi_old(n,m) = sphi(n,m)
-      end do
+    do k = 1, nz
+      call legendre_analysis(gphi(:, :, k), sphi(:, :, k))      
+    end do
+    do n = 1, ntrunc
+      do m = 0, n
+        do k = 1, nz
+          sphi_old(n, m, k) = sphi(n, m, k)
+        end do
+      enddo
     end do
 
   end subroutine update

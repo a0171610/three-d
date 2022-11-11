@@ -26,7 +26,7 @@ contains
     open(10, file="log.txt")
     do i = 1, nlon
       do j = 1, nlat
-        write(10,*) lon(i), lat(j), gphi(i, j)
+    !    write(10,*) lon(i), lat(j), gphi(i, j)
       enddo
     enddo
     close(10)
@@ -34,32 +34,32 @@ contains
     open(12, file="error.txt")
     do i = 1, nlon
         do j = 1, nlat
-          write(12,*) lon(i), lat(j), gphi_initial(i, j) - gphi(i, j)
+    !      write(12,*) lon(i), lat(j), gphi_initial(i, j) - gphi(i, j)
         end do
     end do
     close(12)
 
     open(14, file = "error_equator.txt")
     do i = 1, nlat
-      write(14,*) lat(i), gphi(1, i) - gphi_initial(1, i)
+    !  write(14,*) lat(i), gphi(1, i) - gphi_initial(1, i)
     end do
 
-    dq = sum(gphi(:, :) - gphi_initial(:, :)) / dble(nlat * nlon)
+    !dq = sum(gphi(:, :) - gphi_initial(:, :)) / dble(nlat * nlon)
 
     dqp = 0.0d0
     do i = 1, nlon
         do j = 1, nlat
-            if(gphi(i, j) > gphi_initial(i, j)) then
-              dqp = dqp + gphi(i, j) - gphi_initial(i, j)
-              dqp = dqp / dble(nlon * nlat)
-            endif
+    !        if(gphi(i, j) > gphi_initial(i, j)) then
+    !          dqp = dqp + gphi(i, j) - gphi_initial(i, j)
+    !          dqp = dqp / dble(nlon * nlat)
+    !        endif
         end do
     end do
 
     rmse = 0.0d0
     do i = 1, nlon
       do j = 1, nlat
-        rmse = rmse + (gphi(i, j) - gphi_initial(i, j)) ** 2
+    !    rmse = rmse + (gphi(i, j) - gphi_initial(i, j)) ** 2
         rmse = rmse / dble(nlon * nlat)
       end do
     end do
@@ -72,8 +72,8 @@ contains
 
     do i = 1, nlon
         do j = 1, nlat
-            sum_g1 = sum_g1 + gphi_initial(i, j)! * w(i, j)
-            sum_g2 = sum_g2 + gphi(i, j)! * w(i, j)
+    !        sum_g1 = sum_g1 + gphi_initial(i, j)! * w(i, j)
+    !        sum_g2 = sum_g2 + gphi(i, j)! * w(i, j)
         end do
     end do
     write(*,*) "initial global mass sum", sum_g1, "final global mass sum", sum_g2
@@ -84,8 +84,8 @@ contains
 
     do i = 1, nlon
       do j = 1, nlat
-        sum_g1 = sum_g1 + ((gphi(i, j) - gphi_initial(i, j)) * wgt(j)) ** 2
-        sum_g2 = sum_g2 + (gphi_initial(i, j) * wgt(j)) ** 2
+    !    sum_g1 = sum_g1 + ((gphi(i, j) - gphi_initial(i, j)) * wgt(j)) ** 2
+    !    sum_g2 = sum_g2 + (gphi_initial(i, j) * wgt(j)) ** 2
       enddo
     enddo
 
