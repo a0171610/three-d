@@ -82,6 +82,7 @@ module interpolate3d_module
 
       h = transorm_pressure_to_height(pres)
 
+
       if (h > 12000.0d0 - eps) then
         h = 12000.0d0 - eps
       endif
@@ -190,13 +191,10 @@ module interpolate3d_module
    
       integer(8) :: j
   
-    !  is(1) = lon2i(lon,nx)
-    !  is(2) = is(1) + 1
-      t = lon/dlon - is(1) + 1.0d0 ! t = (lon - dlon*(i-1))/dlon
-    !  is(3:4) = is(2:1:-1)
       is(1) = lon2i(lon, nx); is(5) = is(1) + 1;
       is(2) = is(1); is(3) = is(1); is(4) = is(1)
       is(6) = is(1); is(7) = is(7); is(8) = is(1)
+      t = lon/dlon - is(1) + 1.0d0
 
       j = lat2j(lat, ny)
       if (lat > lat_extend(j)) then 
@@ -211,6 +209,10 @@ module interpolate3d_module
       ks(4) = ks(2); ks(6) = ks(2); ks(8) = ks(2)
 
       v = (h - (ks(1)-1)*200.0d0) / 200.0d0
+
+      if(t > 1.1d0 .or. u > 1.1d0 .or. v > 1.1d0) then
+        write(*,*) 'tuv', t, u, v
+      endif
   
     end subroutine find_stencil
 end module interpolate3d_module
