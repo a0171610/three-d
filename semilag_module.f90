@@ -70,7 +70,7 @@ contains
     end do
     close(10)
 
-    do i = 1, 1
+    do i = 1, nstep
       call update((i-0.5d0)*deltat, deltat)
       write(*, *) "step=", i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -144,6 +144,11 @@ contains
       call legendre_synthesis_dlonlat(sphi_old(:, :, k), gphixy(:, :, k))
     enddo
 
+    do j = 1, nlat
+      gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
+      gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
+    end do
+
     do k = 2, nz-1
       gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (pres(k+1) - pres(k-1))
       gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (pres(k+1) - pres(k-1))
@@ -160,11 +165,6 @@ contains
     gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
     gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
     gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
-
-    do j = 1, nlat
-      gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
-      gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
-    end do
 
 ! set grids
     call interpolate_set(gphi_old)
