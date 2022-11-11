@@ -32,8 +32,8 @@ module upstream3d_module
                        x0, y0, z0, & ! present point in Cartesian coordinates
                        x1, y1, z1, & ! updated point in Cartesian coordinates
                        lon, lat, p, err, &
-                       p0, p1, lon1, lat1
-  
+                       p0, p1, lon0, lat0
+
       nx = size(u, 1)
       ny = size(u, 2)
       nz = size(u, 3)
@@ -56,9 +56,9 @@ module upstream3d_module
             step = 1
 
             do
-              lon1 = modulo(atan2(y0, x0) + pi2, pi2)
-              lat1 = asin(z0)
-              p1 = p - dt * calc_omega(lon1, lat1, p0, t)
+              lon0 = modulo(atan2(y0, x0) + pi2, pi2)
+              lat0 = asin(z0)
+              p1 = p - dt * calc_omega(lon0, lat0, p0, t)
               call uv2xyz(un,vn,lon,lat,xd,yd,zd) ! normalized Cartesian velocity
               ! correction factor
               bk = 1.0d0/sqrt(1.0d0+dt*dt*(xd*xd+yd*yd+zd*zd)-2.0d0*dt*(xd*xg+yd*yg+zd*zg))

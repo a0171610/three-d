@@ -36,9 +36,6 @@ contains
       end do
     end do
 
-    gua(:, :, :) = gua(:, :, :)
-    gva(:, :, :) = gva(:, :, :)
-
     gu = gua + gud
     gv = gva
 
@@ -85,12 +82,13 @@ contains
     real(8), intent(in) :: lon, lat, p, t
     real(8) :: ans
     real(8) :: tmp
-    real(8) :: omega1
+    real(8) :: omega1, lambda1
 
     omega1 = 23000.0d0 * pi / tau
+    lambda1 = lon - 2.0d0 * pi * t / tau
 
     tmp = 1.0d0 + exp((pt - p0) / (b*pt)) - exp((p-p0) / (b*pt)) - exp((pt-p) / (b*pt))
-    ans = omega1 * sin(lon) * cos(lat) * cos(2.0d0*pi*t/tau) * tmp
+    ans = omega1 * sin(lambda1) * cos(lat) * cos(2.0d0*pi*t/tau) * tmp
   end function calc_omega
 
 end module uv_module

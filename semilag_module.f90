@@ -1,6 +1,6 @@
 module semilag_module
 
-  use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, &
+  use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, height, &
     gu, gv, gw, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
   use time_module, only: velocity
   private
@@ -150,21 +150,21 @@ contains
     end do
 
     do k = 2, nz-1
-      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (pres(k+1) - pres(k-1))
-      gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (pres(k+1) - pres(k-1))
-      gphiyz(:, :, k) = (gphiy(:, :, k + 1) - gphiy(:, :, k - 1)) / (pres(k+1) - pres(k-1))
-      gphixyz(:, :, k) = (gphixy(:, :, k + 1) - gphixy(:, :, k - 1)) / (pres(k+1) - pres(k-1))
+      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphiyz(:, :, k) = (gphiy(:, :, k + 1) - gphiy(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphixyz(:, :, k) = (gphixy(:, :, k + 1) - gphixy(:, :, k - 1)) / (height(k+1) - height(k-1))
     end do
 
-    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (pres(2) - pres(1))
-    gphixz(:, :, 1) = (gphix(:, :, 2) - gphix(:, :, 1)) / (pres(2) - pres(1))
-    gphiyz(:, :, 1) = (gphiy(:, :, 2) - gphiy(:, :, 1)) / (pres(2) - pres(1))
-    gphixyz(:, :, 1) = (gphixy(:, :, 2) - gphixy(:, :, 1)) / (pres(2) - pres(1))
+    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (height(2) - height(1))
+    gphixz(:, :, 1) = (gphix(:, :, 2) - gphix(:, :, 1)) / (height(2) - height(1))
+    gphiyz(:, :, 1) = (gphiy(:, :, 2) - gphiy(:, :, 1)) / (height(2) - height(1))
+    gphixyz(:, :, 1) = (gphixy(:, :, 2) - gphixy(:, :, 1)) / (height(2) - height(1))
 
-    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
-    gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
-    gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
-    gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (pres(nz) - pres(nz-1))
+    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (height(nz) - height(nz-1))
 
 ! set grids
     call interpolate_set(gphi_old)
