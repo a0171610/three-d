@@ -81,11 +81,6 @@ module interpolate3d_module
       real(8), parameter :: dh = 200.0d0, eps = 1.0d-7
 
       h = transorm_pressure_to_height(pres)
-
-
-      if (h > 12000.0d0 - eps) then
-        h = 12000.0d0 - eps
-      endif
   
       call find_stencil(lon, lat, h)
       dlat = lat_extend(js(4)) - lat_extend(js(1))

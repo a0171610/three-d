@@ -14,15 +14,16 @@ module upstream3d_module
   contains
   !! midlon, midlatはdt前の出発点(middle), deplon, deplatは2*dt前, uとvには時刻tのものを入れる(式(31)を参照)
 
-    subroutine find_points(u, v, w, t, dt, midlon, midlat, midp, deplon, deplat, depp)
+    subroutine find_points(u, v, w, t, dt, midlon, midlat, deplon, deplat, depp)
       use math_module, only: pi2=>math_pi2
       use uv_module, only: calc_omega, calc_ua, calc_va, calc_ud
       implicit none
   
       real(8), dimension(:, :, :), intent(in) :: u, v, w
       real(8), intent(in) :: t, dt
-      real(8), dimension(:, :, :), intent(inout) :: midlon, midlat, midp
+      real(8), dimension(:, :, :), intent(inout) :: midlon, midlat
       real(8), dimension(:, :, :), intent(out) :: deplon, deplat, depp
+      real(8), parameter :: pt = 254.944d0, eps = 1.0d-6, ps = 1000.0d0
 
       integer(8) :: nx, ny, nz, i, j, k, step
       real(8) :: un, vn, wn, &     ! normalised velocity
@@ -85,7 +86,6 @@ module upstream3d_module
 
             midlon(i, j, k) = lon ! store as the mid-point
             midlat(i, j, k) = lat
-            midp(i, j, k) = p
 
             bk = 2.0d0*(x0*xg+y0*yg+z0*zg) ! calculate the departure point
             x1 = bk*x0 - xg
@@ -95,6 +95,12 @@ module upstream3d_module
             deplon(i, j, k) = modulo(atan2(y1,x1)+pi2,pi2)
             deplat(i, j, k) = asin(z1)
             depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p, t)
+            if (depp(i, j, k) < pt - eps) then
+              depp(i, j, k) = pt - eps
+            endif
+            if (depp(i, j, k) > ps - eps) then
+              depp(i, j, k) = ps - eps
+            endif
           enddo
         end do
       end do

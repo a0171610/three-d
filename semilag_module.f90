@@ -5,7 +5,7 @@ module semilag_module
   use time_module, only: velocity
   private
   
-  real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, midpres, deplon, deplat, deppres
+  real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, deplon, deplat, deppres
   real(8), dimension(:, :, :), allocatable, private :: gphi_old, gphi_initial, gphix, gphiy, gphixy
   real(8), dimension(:, :, :), allocatable, private :: gphiz, gphixz, gphiyz, gphixyz
 
@@ -23,7 +23,7 @@ contains
 
     allocate(gphi_old(nlon, nlat, nz), gphix(nlon, nlat, nz),gphiy(nlon, nlat, nz),gphixy(nlon, nlat, nz), &
              midlon(nlon,nlat,nz),midlat(nlon,nlat,nz),deplon(nlon,nlat,nz),deplat(nlon,nlat,nz), gphi_initial(nlon, nlat, nz), &
-             midpres(nlon, nlat, nz), deppres(nlon, nlat, nz))
+             deppres(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
     call interpolate_init(gphi)
 
@@ -36,9 +36,6 @@ contains
     do j = 1, nlat
       midlat(:, j, :) = latitudes(j)
     end do
-    do i = 1, nz
-      midpres(:, :, i) = pres(i)
-    enddo
     open(11, file="animation.txt")
     do i = 1, nlon
       do j = 1, nlat
@@ -134,7 +131,7 @@ contains
     integer(8) :: i, j, k, m, n
 
     call uv_div(t, lon, latitudes, pres, gu, gv, gw)
-    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, midpres, deplon, deplat, deppres)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
     do k = 1, nz
       call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
     enddo
