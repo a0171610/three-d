@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 from PIL import Image
 import os
 
-step = 17
+step = 20
 n = len(text)
 n = int(n / step)
 X = np.zeros((step, n))
@@ -22,10 +22,7 @@ ims = []
 cdir = os.getcwd()
 fig = plt.figure(figsize=(8,8))
 ax = fig.add_subplot(111)
-plt.xlim([-2.5, 2.5])
-plt.ylim([-2.5, 2.5])
 plt.title('semi-lag')
-
 
 for i in range(step):
     fig = plt.figure(figsize=(8,8))

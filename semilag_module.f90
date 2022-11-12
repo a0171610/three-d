@@ -39,7 +39,7 @@ contains
     open(11, file="animation.txt")
     do i = 1, nlon
       do j = 1, nlat
-          write(11,*) lon(i), latitudes(j), gphi(i, j, 24)
+        write(11,*) lon(i), latitudes(j), gphi(i, j, 24)
       end do        
     end do
 
@@ -76,7 +76,7 @@ contains
       if ( mod(i, hstep) == 0 ) then
         do j = 1, nlon
             do k = 1, nlat
-      !          write(11,*) lon(j), latitudes(k), gphi(j, k)
+                write(11,*) lon(j), latitudes(k), gphi(j, k, 25)
             end do
         end do
       endif
@@ -103,7 +103,7 @@ contains
     open(10, file="log.txt")
     do i = 1, nlon
       do j = 1, nlat
-      !  write(10,*) lon(i), latitudes(j), gphi(i, j)
+        write(10,*) lon(i), latitudes(j), gphi(i, j, 25)
       enddo
     enddo
     close(10)

@@ -186,9 +186,9 @@ module interpolate3d_module
    
       integer(8) :: j
   
-      is(1) = lon2i(lon, nx); is(5) = is(1) + 1;
-      is(2) = is(1); is(3) = is(1); is(4) = is(1)
-      is(6) = is(1); is(7) = is(7); is(8) = is(1)
+      is(1) = lon2i(lon, nx); is(2) = is(1) + 1;
+      is(3) = is(1); is(5) = is(1); is(7) = is(1)
+      is(4) = is(2); is(6) = is(2); is(8) = is(2)
       t = lon/dlon - is(1) + 1.0d0
 
       j = lat2j(lat, ny)
@@ -196,12 +196,12 @@ module interpolate3d_module
         j = j - 1
       end if
       js(1:2) = j; js(5:6) = j
-      js(3:4) = j + 1; js(7:8) = j
+      js(3:4) = j + 1; js(7:8) = j + 1
       u = (lat-lat_extend(j))/(lat_extend(j+1)-lat_extend(j))
 
-      ks(1) = int(h/200.0d0) + 1; ks(2) = ks(1) + 1
-      ks(3) = ks(1); ks(5) = ks(1); ks(7) = ks(1)
-      ks(4) = ks(2); ks(6) = ks(2); ks(8) = ks(2)
+      ks(1) = int(h/200.0d0) + 1; ks(5) = ks(1) + 1
+      ks(2) = ks(1); ks(3) = ks(1); ks(4) = ks(1)
+      ks(6) = ks(5); ks(7) = ks(5); ks(8) = ks(5)
 
       v = (h - (ks(1)-1)*200.0d0) / 200.0d0
 
