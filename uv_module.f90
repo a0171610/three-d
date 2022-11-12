@@ -3,7 +3,7 @@ module uv_module
   implicit none
   private
 
-  real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0, pt = 254.944d0, p0 = 1000.0d0, b = 0.2d0, tau = 1036800.0d0, rad = 6.37122d6
+  real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0, pt = 254.944d0, p0 = 1000.0d0, b = 0.2d0, tau = 12.0d0
 
   public :: uv_div, calc_omega, calc_ua, calc_ud, calc_va
 
