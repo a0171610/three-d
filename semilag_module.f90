@@ -31,11 +31,14 @@ contains
     gphi_initial(:, :, :) = gphi(:, :, :)
 
     do i = 1, nlon
-      midlon(i, :, 1) = lon(i)
+      midlon(i, :, :) = lon(i)
     end do
     do j = 1, nlat
-      midlat(:, j, 1) = latitudes(j)
+      midlat(:, j, :) = latitudes(j)
     end do
+    do i = 1, nz
+      midpres(:, :, i) = pres(i)
+    enddo
     open(11, file="animation.txt")
     do i = 1, nlon
       do j = 1, nlat
