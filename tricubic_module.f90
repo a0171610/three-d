@@ -44,9 +44,9 @@ module tricubic_module
       end do
       cl(:) = matmul(wt, x)
       l = 0
-      do i = 1, 4
+      do k = 1, 4
         do j = 1, 4
-          do k = 1, 4
+          do i = 1, 4
             l = l + 1
             c(i, j, k) = cl(l)
           enddo
