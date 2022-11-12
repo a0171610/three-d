@@ -49,7 +49,7 @@ contains
 
     lambda1 = lon - 2.0d0 * pi * t / tau
     ans = 10.0d0  * sin(lambda1)**2 * sin(2.0d0*lat) * cos(pi*t/tau) + 2.0d0*pi*cos(lat)
-    ans = ans * rad / tau
+    ans = ans / tau
   end function calc_ua
 
   function calc_ud(lon, lat, p, t) result(ans)
@@ -61,7 +61,7 @@ contains
     lambda1 = lon - 2.0d0 * pi * t / tau
     tmp = exp((pt - p) / (b * pt)) - exp((p - p0) / (b * pt))
     omega1 = 23000.0d0 * pi / tau
-    ans = omega1 * rad * cos(lambda1) * cos(lat)**2 * cos(2.0d0*pi*t/tau) * tmp
+    ans = omega1 * cos(lambda1) * cos(lat)**2 * cos(2.0d0*pi*t/tau) * tmp
     ans = ans / (b * pt)
 
   end function calc_ud
@@ -74,7 +74,7 @@ contains
 
     lambda1 = lon - 2.0d0 * pi * t / tau
 
-    ans = (10.0d0 * rad / tau) * sin(2.0d0*lambda1) * cos(lat) * cos(pi * t / tau)
+    ans = (10.0d0 / tau) * sin(2.0d0*lambda1) * cos(lat) * cos(pi * t / tau)
   end function calc_va
 
   function calc_omega(lon, lat, p, t) result(ans)
