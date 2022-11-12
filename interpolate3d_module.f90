@@ -213,6 +213,10 @@ module interpolate3d_module
       if(t > 1.1d0 .or. u > 1.1d0 .or. v > 1.1d0) then
         write(*,*) 'tuv', t, u, v
       endif
+
+      if(t < -0.01d0 .or. u < -0.01d0 .or. v < -0.01d0) then
+        write(*,*) 'tuv', t, u, v
+      endif
   
     end subroutine find_stencil
 end module interpolate3d_module
