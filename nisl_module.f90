@@ -46,7 +46,7 @@ contains
     open(11, file="animation.txt")
     do i = 1, nlon
       do j = 1, nlat
-    !      write(11,*) longitudes(i), latitudes(j), gphi(i, j)
+          write(11,*) longitudes(i), latitudes(j), gphi(i, j, 25)
       end do        
     end do
     call update(0.0d0, deltat)
@@ -144,7 +144,7 @@ contains
           call check_height(depheight(i, j, k))
           id(i, j, k) = int(anint(depheight(i, j, k) / 200.0d0)) + 1
           zdot(i, j, k) = gw(i, j, k) - (height(k) - height(id(i, j, k))) / (2.0d0 * dt)
-          midh(i, j, j) = (height(k) + height(id(i, j, k))) / 2.0d0
+          midh(i, j, k) = (height(k) + height(id(i, j, k))) / 2.0d0
           call check_height(midh(i, j, k))
         enddo
       enddo
@@ -176,7 +176,8 @@ contains
       do i = 1, nlon
         do k = 1, nz
           tmppres = transorm_height_to_pressure(height(id(i, j, k)))
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deppres(i, j, k), gphi(i,j,k))
+          call check_pressure(tmppres)
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, gphi(i,j,k))
         enddo
       enddo
     end do
@@ -218,5 +219,19 @@ contains
       h = 12000.d0 - eps
     endif
   end subroutine check_height
+
+  subroutine check_pressure(p)
+    implicit none
+
+    real(8), intent(inout) :: p
+    real(8), parameter :: pt = 254.944d0, eps = 1.0d-6, ps = 1000.0d0
+
+    if (p < pt - eps) then
+      p = pt - eps
+    endif
+    if (p > ps - eps) then
+      p = ps - eps
+    endif
+  end subroutine check_pressure
 
 end module nisl_module
