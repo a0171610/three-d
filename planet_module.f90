@@ -3,8 +3,7 @@ module planet_module
   implicit none
 
 ! Geophysical constants
-  !real(8), public :: planet_radius = 6.371d6, day_in_sec = 86400.0d0, angular_velocity
-  real(8), public, parameter :: planet_radius = 1.0d0, day_in_sec = 1.0d0
+  real(8), public, parameter :: planet_radius = 6.371d6, day_in_sec = 86400.0d0
   real(8), public :: angular_velocity
   real(8), private, parameter :: p0 = 1000.0d0, T0 = 300.0d0, Rd = 287.0d0, g = 9.80616d0
 

@@ -1,9 +1,10 @@
 module uv_module
   use math_module, only: pi=>math_pi, pi2=>math_pi2
+  use planet_module, only: d=>day_in_sec
   implicit none
   private
 
-  real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0, pt = 254.944d0, p0 = 1000.0d0, b = 0.2d0, tau = 12.0d0
+  real(8), parameter :: t1 = 5.0d0, kappa = 1.0d0, pt = 254.944d0, p0 = 1000.0d0, b = 0.2d0, tau = 12.0d0*d
 
   public :: uv_div, calc_omega, calc_ua, calc_ud, calc_va
 
@@ -74,7 +75,8 @@ contains
 
     lambda1 = lon - 2.0d0 * pi * t / tau
 
-    ans = (10.0d0 / tau) * sin(2.0d0*lambda1) * cos(lat) * cos(pi * t / tau)
+    ans = 10.0d0 * sin(2.0d0*lambda1) * cos(lat) * cos(pi * t / tau)
+    ans = ans / tau
   end function calc_va
 
   function calc_omega(lon, lat, p, t) result(ans)
