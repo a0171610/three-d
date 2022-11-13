@@ -41,7 +41,7 @@ module interpolate_module
       nx2 = nx + nhalo + 1
       ny1 = 1 - nhalo - 1
       ny2 = ny + nhalo + 1
-  
+
       allocate(lon_extend(nx1:nx2), lat_extend(ny1:ny2), ff(nx1:nx2,ny1:ny2), &
                ffx(nx1:nx2,ny1:ny2), ffy(nx1:nx2,ny1:ny2), ffxy(nx1:nx2,ny1:ny2), &
                ffxl(nx1:nx2,ny1:ny2), ffyl(nx1:nx2,ny1:ny2), &
