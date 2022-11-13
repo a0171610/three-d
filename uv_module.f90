@@ -63,7 +63,7 @@ contains
     tmp = exp((pt - p) / (b * pt)) - exp((p - p0) / (b * pt))
     omega1 = 23000.0d0 * pi / tau
     ans = omega1 * cos(lambda1) * cos(lat)**2 * cos(2.0d0*pi*t/tau) * tmp
-    ans = ans / (b * pt)
+    ans = ans / (b * pt * 100.0d0)
 
   end function calc_ud
 
