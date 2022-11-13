@@ -1,7 +1,7 @@
 module semilag_module
 
   use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, height, &
-    gu, gv, gw, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
+    gu, gv, gomega, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
   use time_module, only: velocity
   private
   
@@ -130,8 +130,8 @@ contains
 
     integer(8) :: i, j, k, m, n
 
-    call uv_div(t, lon, latitudes, pres, gu, gv, gw)
-    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
+    call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+    call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
     do k = 1, nz
       call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
     enddo

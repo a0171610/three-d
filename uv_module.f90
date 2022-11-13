@@ -10,12 +10,12 @@ module uv_module
 
 contains
 
-  subroutine uv_div(t, lon, lat, pres, gu, gv, gw)
+  subroutine uv_div(t, lon, lat, pres, gu, gv, gomega)
     implicit none
 
     real(8), intent(in) :: t
     real(8), dimension(:), intent(in) :: lon, lat, pres
-    real(8), dimension(:, :, :), intent(inout) :: gu, gv, gw
+    real(8), dimension(:, :, :), intent(inout) :: gu, gv, gomega
     real(8), allocatable :: gua(:, :, :), gva(:, :, :), gud(:, :, :)
 
     integer(8) :: i, j, k, nx, ny, nz
@@ -32,7 +32,7 @@ contains
           gua(i, j, k) = calc_ua(lon(i), lat(j), t)
           gva(i, j, k) = calc_va(lon(i), lat(j), t)
           gud(i, j, k) = calc_ud(lon(i), lat(j), pres(k), t)
-          gw(i, j, k) = calc_omega(lon(i), lat(j), pres(k), t)
+          gomega(i, j, k) = calc_omega(lon(i), lat(j), pres(k), t)
         end do
       end do
     end do
