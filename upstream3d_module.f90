@@ -94,13 +94,14 @@ module upstream3d_module
 
             deplon(i, j, k) = modulo(atan2(y1,x1)+pi2,pi2)
             deplat(i, j, k) = asin(z1)
-            depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p, t)
+            depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p1, t)
             if (depp(i, j, k) < pt - eps) then
               depp(i, j, k) = pt - eps
             endif
             if (depp(i, j, k) > ps - eps) then
               depp(i, j, k) = ps - eps
             endif
+
           enddo
         end do
       end do

@@ -3,7 +3,7 @@ module grid_module
   private
 
   integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60, nz = 61
-  !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
+  !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120, nz = 120
   !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
@@ -11,7 +11,7 @@ module grid_module
   real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gw
   real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, pres, sigma, height, rho
   real(8), public :: Umax, dlat(nlat), dlat4(nlat)
-  real(8), public, parameter :: ps = 1000.0d0, Rd = 287.0d0, T0 = 300.0d0
+  real(8), public, parameter :: ps = 1000.0d0, Rd = 287.0d-3, T0 = 300.0d0
 
   public :: grid_init, grid_clean, pole_regrid
 

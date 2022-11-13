@@ -91,6 +91,7 @@ contains
 
     tmp = 1.0d0 + exp((pt - p0) / (b*pt)) - exp((p-p0) / (b*pt)) - exp((pt-p) / (b*pt))
     ans = omega1 * sin(lambda1) * cos(lat) * cos(2.0d0*pi*t/tau) * tmp
+    ans = ans / 100.0d0 !hPa単位にするために0.01倍
   end function calc_omega
 
 end module uv_module
