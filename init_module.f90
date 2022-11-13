@@ -186,7 +186,7 @@ contains
     implicit none
     real(8), intent(in) :: r, z
     real(8) :: ans
-    real(8), parameter :: Zt = 500.0d0, zc = 5000.0d0, Rt = 0.5d0
+    real(8), parameter :: Zt = 1000.0d0, zc = 5000.0d0, Rt = 0.5d0
     ans = (r / Rt) ** 2 + ((z - zc)/ Zt) ** 2
     ans = min(ans, 1.0d0)
   end function threed_dist
