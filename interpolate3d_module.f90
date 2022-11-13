@@ -144,7 +144,7 @@ module interpolate3d_module
         ffy(1:nx, ny+j, 1:nz) = -cshift(ffy(1:nx,ny-(j-1), 1:nz),nx/2)
 
         ffz(1:nx, 1-j, 1:nz) = -cshift(ffz(1:nx, j, 1:nz),nx/2)
-        ffz(1:nx,ny+j, 1:nz) = -cshift(ff(1:nx, ny-(j-1), 1:nz),nx/2)
+        ffz(1:nx,ny+j, 1:nz) = -cshift(ffz(1:nx, ny-(j-1), 1:nz),nx/2)
 
         ffxy(1:nx, 1-j, 1:nz) = cshift(ffxy(1:nx, j, 1:nz),nx/2)
         ffxy(1:nx,ny+j, 1:nz) = cshift(ffxy(1:nx,ny-(j-1), 1:nz),nx/2)
