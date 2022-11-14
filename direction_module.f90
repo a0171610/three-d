@@ -123,12 +123,13 @@ contains
 
     integer(8) :: i, j, k, m
     real(8), intent(in) :: t, dt
-    real(8) :: tmppres, ans
-    real(8), allocatable :: zdot(:, :, :), midh(:, :, :)
-    integer(8), allocatable :: id(:, :, :)
+    real(8) :: tmppres, ans, tmp1, tmp2
+    real(8), allocatable :: zdotA(:, :, :), zdotB(:, :, :), midhA(:, :, :), midhB(:, :, :), ratio(:, :, :)
+    integer(8), allocatable ::  idA(:, :, :), idB(:, :, :)
     real(8), parameter :: g = 9.80616d0
 
-    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz))
+    allocate(zdotA(nlon, nlat, nz), zdotB(nlon, nlat, nz), midhA(nlon, nlat, nz), midhB(nlon, nlat, nz))
+    allocate(idA(nlon, nlat, nz), idB(nlon, nlat, nz), ratio(nlon, nlat, nz))
 
     call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
     call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
@@ -142,10 +143,15 @@ contains
         do j = 1, nlat
           depheight(i, j, k) = transorm_pressure_to_height(deppres(i, j, k))
           call check_height(depheight(i, j, k))
-          id(i, j, k) = int(anint(depheight(i, j, k) / 200.0d0)) + 1
-          zdot(i, j, k) = gw(i, j, k) - (height(k) - height(id(i, j, k))) / (2.0d0 * dt)
-          midh(i, j, k) = (height(k) + height(id(i, j, k))) / 2.0d0
-          call check_height(midh(i, j, k))
+          idA(i, j, k) = int(aint(depheight(i, j, k) / 200.0d0)) + 1
+          idB(i, j, k) = idA(i, j, k) + 1
+          ratio(i, j, k) = (depheight(i, j, k) - height(idA(i, j, k))) / 200.0d0
+          ratio(i, j, k) = calculate_ratio(depheight(i,j,k) - height(idA(i,j,k)), height(idB(i,j,k)) - depheight(i,j,k))
+          zdotA(i, j, k) = gw(i, j, k) - (height(k) - height(idA(i, j, k))) / (2.0d0 * dt)
+          zdotB(i, j, k) = gw(i, j, k) - (height(k) - height(idB(i, j, k))) / (2.0d0 * dt)
+          midhA(i, j, k) = (height(k) + height(idA(i, j, k))) / 2.0d0
+          midhB(i, j, k) = (height(k) + height(idB(i, j, k))) / 2.0d0
+          call check_height(midhA(i, j, k))
         enddo
       enddo
     enddo
@@ -175,9 +181,13 @@ contains
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
-          tmppres = transorm_height_to_pressure(height(id(i, j, k)))
+          tmppres = transorm_height_to_pressure(height(idA(i, j, k)))
           call check_pressure(tmppres)
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, gphi(i,j,k))
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, tmp1)
+          tmppres = transorm_height_to_pressure(height(idB(i, j, k)))
+          call check_pressure(tmppres)
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, tmp2)
+          gphi(i, j, k) = tmp1 * (1.0d0 - ratio(i, j, k)) + tmp2 * ratio(i, j, k)
         enddo
       enddo
     end do
@@ -192,9 +202,20 @@ contains
       do j = 1, nlat
         call interpolate1d_set(gphiz(i, j, :))
         do k = 1, nz
-          call check_height(midh(i, j, k))
-          call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans
+          call check_height(midhA(i, j, k))
+          call interpolate1d_linear(midhA(i, j, k), ans)
+          gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * (1.0d0 - ratio(i, j, k))
+        enddo
+      enddo
+    enddo
+
+    do i = 1, nlon
+      do j = 1, nlat
+        call interpolate1d_set(gphiz(i, j, :))
+        do k = 1, nz
+          call check_height(midhB(i, j, k))
+          call interpolate1d_linear(midhB(i, j, k), ans)
+          gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * ratio(i, j, k)
         enddo
       enddo
     enddo
@@ -232,5 +253,11 @@ contains
       p = ps - eps
     endif
   end subroutine check_pressure
+
+  function calculate_ratio(a, b) result(ans)
+    real(8), intent(in) :: a, b
+    real(8) :: ans
+    ans = b ** 2 / (a ** 2 + b ** 2)
+  end function calculate_ratio
 
 end module direction_module
