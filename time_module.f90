@@ -8,6 +8,6 @@ module time_module
   real(8), public, parameter :: deltat = 12.0d0*86400.0d0/dble(nstep)
   !real(8), public :: deltat = 21600.0d0
 
-  character(len=15), public :: model = "direction", imethod = "sph", velocity = "div", field = "cbell2"
-  logical, public :: conserve = .false.
+  character(len=15), public :: model = "slag", imethod = "sph", velocity = "div", field = "cbell2"
+  character(len=15), public :: case = "div"
 end module time_module

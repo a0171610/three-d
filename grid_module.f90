@@ -24,7 +24,8 @@ contains
     use init_module, only: &
       init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2
     use uv_module, only: uv_div
-    use time_module, only: field
+    use uv_hadley_module, only: uv_hadley
+    use time_module, only: field, case
     use planet_module, only: planet_radius, transorm_height_to_pressure
     implicit none
 
@@ -93,7 +94,15 @@ contains
       enddo
     enddo
 
-    call uv_div(0.0d0, lon, lat, pres, gu, gv, gomega)
+    select case(case)
+      case('hadley')
+        call uv_hadley(0.0d0, lon, lat, pres, gu, gv, gomega)
+      case('div')
+        call uv_div(0.0d0, lon, lat, pres, gu, gv, gomega)
+      case default
+        print *, "No matching initial field"
+      stop
+    end select
 
   Umax = real(maxval(gu) * planet_radius)
 

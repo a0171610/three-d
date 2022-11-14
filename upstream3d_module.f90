@@ -17,6 +17,8 @@ module upstream3d_module
     subroutine find_points(u, v, w, t, dt, midlon, midlat, deplon, deplat, depp)
       use math_module, only: pi2=>math_pi2
       use uv_module, only: calc_omega, calc_ua, calc_va, calc_ud
+      use uv_hadley_module, only: calc_omega_hadley=>calc_omega, calc_u, calc_v
+      use time_module, only: case
       implicit none
   
       real(8), dimension(:, :, :), intent(in) :: u, v, w
@@ -70,8 +72,17 @@ module upstream3d_module
               lat = asin(z1)
               lon = modulo(atan2(y1,x1)+pi2,pi2)
 
-              un = calc_ua(lon, lat, t) + calc_ud(lon, lat, p1, t)
-              vn = calc_va(lon, lat, t)
+              select case(case)
+                case('hadley')
+                  un = calc_u(lat)
+                  vn = calc_v(lat, p1, t)
+                case('div')
+                  un = calc_ua(lon, lat, t) + calc_ud(lon, lat, p1, t)
+                  vn = calc_va(lon, lat, t)
+                case default
+                  print *, "No matching initial field"
+                stop
+              end select
 
               err = sqrt((x1-x0)*(x1-x0)+(y1-y0)*(y1-y0)+(z1-z0)*(z1-z0)) ! calculate error
 
@@ -94,7 +105,15 @@ module upstream3d_module
 
             deplon(i, j, k) = modulo(atan2(y1,x1)+pi2,pi2)
             deplat(i, j, k) = asin(z1)
-            depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p1, t)
+            select case(case)
+            case('hadley')
+              depp(i, j, k) = p - 2.0d0 * dt * calc_omega_hadley(lat, p1, t)
+            case('div')
+              depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p1, t)
+            case default
+              print *, "No matching initial field"
+            stop
+          end select
             if (depp(i, j, k) < pt - eps) then
               depp(i, j, k) = pt - eps
             endif
