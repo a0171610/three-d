@@ -70,7 +70,7 @@ contains
     end do
     close(10)
 
-    do i = 1, nstep
+    do i = 1, nstep/2
       call update((i-0.5d0)*deltat, deltat)
       write(*, *) "step=", i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -80,11 +80,11 @@ contains
             end do
         end do
       endif
-      if (i == nstep / 2 .and. field == "cbell2") then
-        open(10, file="log_cbell.txt")
+      if (i == nstep / 2) then
+        open(10, file="half.txt")
         do j = 1, nlon
           do k = 1, nlat
-      !      write(10,*) gphi(j, k)
+            write(10,*) lon(j), latitudes(k), gphi(j, k, 25)
           enddo
         enddo
         close(10)

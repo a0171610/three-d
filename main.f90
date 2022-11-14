@@ -8,7 +8,7 @@ program advection
   use semilag_module, only: semilag_init, semilag_timeint, semilag_clean
   use nisl_module, only: nisl_init, nisl_timeint, nisl_clean
   !use nisl_2step_module, only: nisl_2step_init, nisl_2step_timeint, nisl_2step_clean
-  !use direction_module, only: direction_init, direction_timeint, direction_clean
+  use direction_module, only: direction_init, direction_timeint, direction_clean
   !use direction_2step_module, only: direction_2step_init, direction_2step_timeint, direction_2step_clean
   use analysis_module, only: error_log
 
@@ -33,10 +33,10 @@ program advection
   !!    call nisl_2step_init()
   !    call nisl_2step_timeint()
   !    call nisl_2step_clean()
-  !  case("direction")
-  !    call direction_init()
-  !    call direction_timeint()
-  !    call direction_clean()
+    case("direction")
+      call direction_init()
+      call direction_timeint()
+      call direction_clean()
     case default
       print *, "No matching model for", model
   end select
