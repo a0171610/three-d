@@ -2,8 +2,9 @@ module grid_module
   implicit none
   private
 
-  integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60, nz = 61
-  !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120, nz = 120
+  integer(8), parameter, public :: nz = 61
+  !integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
+  integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
   !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
