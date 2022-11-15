@@ -64,13 +64,13 @@ contains
   end subroutine nisl_clean
 
   subroutine nisl_timeint()
-    use time_module, only: nstep, deltat, hstep, field
+    use time_module, only: nstep, deltat, hstep
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(8) :: i, j, k
 
-    do i = 1, nstep
+    do i = 1, nstep/2
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -79,24 +79,6 @@ contains
               write(11,*) longitudes(j), latitudes(k), gphi(j, k, 25)
             end do
         end do
-      endif
-      if (i == nstep / 2 .and. field == "cbell2") then
-        open(10, file="log_cbell.txt")
-        do j = 1, nlon
-          do k = 1, nlat
-      !      write(10,*) gphi(j, k)
-          enddo
-        enddo
-        close(10)
-      endif
-      if (i == nstep / 2 .and. field == "ccbell2") then
-        open(10, file="log_ccbell.txt")
-        do j = 1, nlon
-          do k = 1, nlat
-      !      write(10,*) wgt(k), gphi(j, k)
-          enddo
-        enddo
-        close(10)
       endif
     end do
     close(11)
@@ -112,6 +94,8 @@ contains
 
   subroutine update(t, dt)
     use uv_module, only: uv_div
+    use time_module, only: case
+    use uv_hadley_module, only: uv_hadley
     use planet_module, only: transorm_pressure_to_height, transorm_height_to_pressure
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
@@ -130,7 +114,15 @@ contains
 
     allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz))
 
-    call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+    select case(case)
+      case('hadley')
+        call uv_hadley(t, lon, latitudes, pres, gu, gv, gomega)
+      case('div')
+        call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+      case default
+        print *, "No matching initial field"
+      stop
+    end select
     call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
 
     do k = 1, nz

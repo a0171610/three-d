@@ -5,9 +5,9 @@ module time_module
   integer(8), public, parameter ::  nstep = 200, hstep = 5
   !integer(8), public ::  nstep = 80, hstep = 5
 
-  real(8), public, parameter :: deltat = 12.0d0*86400.0d0/dble(nstep)
+  real(8), public, parameter :: deltat = 86400.0d0/dble(nstep)
   !real(8), public :: deltat = 21600.0d0
 
-  character(len=15), public :: model = "slag", imethod = "sph", velocity = "div", field = "cbell2"
-  character(len=15), public :: case = "div"
+  character(len=15), public :: model = "slag", imethod = "sph"
+  character(len=15), public :: case = "hadley"
 end module time_module

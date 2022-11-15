@@ -2,7 +2,6 @@ module semilag_module
 
   use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, height, &
     gu, gv, gomega, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
-  use time_module, only: velocity
   private
   
   real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, deplon, deplat, deppres
@@ -56,7 +55,7 @@ contains
 
   subroutine semilag_timeint()
     use math_module, only: pi=>math_pi
-    use time_module, only: nstep, deltat, hstep, field
+    use time_module, only: nstep, deltat, hstep
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
@@ -89,15 +88,6 @@ contains
         enddo
         close(10)
       endif
-      if (i == nstep / 2 .and. field == "ccbell2") then
-        open(10, file="log_ccbell.txt")
-        do j = 1, nlon
-          do k = 1, nlat
-      !      write(10,*) wgt(k), gphi(j, k)
-          enddo
-        enddo
-        close(10)
-      endif
     end do
     close(11)
     open(10, file="log.txt")
@@ -120,7 +110,9 @@ contains
     use math_module, only: &
       pi=>math_pi, pir=>math_pir, pih=>math_pih
     use upstream3d_module, only: find_points
+    use time_module, only: case
     use uv_module, only: uv_div
+    use uv_hadley_module, only: uv_hadley
     use interpolate3d_module, only: interpolate_set, interpolate_setd, interpolate_tricubic
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -130,7 +122,16 @@ contains
 
     integer(8) :: i, j, k, m, n
 
-    call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+    select case(case)
+      case('hadley')
+        call uv_hadley(t, lon, latitudes, pres, gu, gv, gomega)
+      case('div')
+        call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+      case default
+        print *, "No matching initial field"
+      stop
+    end select
+
     call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
     do k = 1, nz
       call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))

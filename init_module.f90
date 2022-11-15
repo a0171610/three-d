@@ -8,7 +8,7 @@ module init_module
     lonc = (/5.0d0*pi/6.0d0, 7.0d0*pi/6.0d0/), &
     latc = (/0.0d0, 0.0d0/)
 
-  public :: init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2
+  public :: init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2, init_hadley
 
 contains
 
@@ -129,6 +129,32 @@ contains
       end do
     end do
   end subroutine init_cbell_2
+
+  subroutine init_hadley(lon, lat, z, gphi)
+    implicit none
+
+    real(8), dimension(:), intent(in) :: lon, lat, z
+    real(8), dimension(:, :, :), intent(inout) :: gphi
+
+    integer(8) :: i, j, k, nx, ny, nz
+    real(8), parameter :: z1 = 2000.0d0, z2 = 5000.0d0, z0 = (z1 + z2) / 2.0d0
+
+    nx = size(lon)
+    ny = size(lat)
+    nz = size(z)
+
+    gphi(:, :, :) = 0.0d0
+    do i = 1, nx
+      do j = 1, ny
+        do k = 1, nz
+          if (z(k) >= z1 .and. z(k) <= z2) then
+            gphi(i, j, k) = (1.0d0 + cos((2.0d0 * pi * (z(k) - z0)) / (z2 - z1))) * 0.5d0
+          endif
+        end do
+      end do
+    end do
+
+  end subroutine init_hadley
 
   subroutine init_scyli2(lon,lat,gphi)
     use sphere_module, only: orthodrome

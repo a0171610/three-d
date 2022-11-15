@@ -3,8 +3,8 @@ module grid_module
   private
 
   integer(8), parameter, public :: nz = 61
-  !integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
-  integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
+  integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
+  !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
   !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
@@ -23,10 +23,10 @@ contains
     use legendre_transform_module, only: &
       legendre_init, legendre_analysis
     use init_module, only: &
-      init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2
+      init_ghill, init_ghill2, init_cbell2, init_scyli2, init_ccbel2, init_cbell_2, init_hadley
     use uv_module, only: uv_div
     use uv_hadley_module, only: uv_hadley
-    use time_module, only: field, case
+    use time_module, only: case
     use planet_module, only: planet_radius, transorm_height_to_pressure
     implicit none
 
@@ -67,21 +67,15 @@ contains
       rho(i) = pres(i) / (Rd * T0)
     end do
 
-    select case(field)
-    !  case("ghill")
-    !    call init_ghill(lon,lat,gphi)
-    !  case("ghill2")
-    !    call init_ghill2(lon,lat,gphi)
-      case("cbell2")
-        call init_cbell_2(lon, lat, height, gphi)
-    !  case("scyli2")
-    !    call init_scyli2(lon,lat,gphi)
-    !  case("ccbell2")
-    !    call init_ccbel2(lon,lat,gphi)
-      case default
-        print *, "No matching initial field"
-      stop
-    end select
+    select case(case)
+    case('hadley')
+      call init_hadley(lon, lat, height, gphi)
+    case('div')
+      call init_cbell_2(lon, lat, height, gphi)
+    case default
+      print *, "No matching initial field"
+    stop
+  end select
 
     gphi_initial(:, :, :) = gphi(:, :, :)
     do k = 1, nz

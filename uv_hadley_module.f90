@@ -32,11 +32,12 @@ subroutine uv_hadley(t, lon, lat, pres, gu, gv, gomega)
 end subroutine uv_hadley
 
   function calc_u(lat) result(ans)
+    use planet_module, only: planet_radius
     implicit none
     real(8), intent(in) :: lat
     real(8) :: ans
 
-    ans = u0 * cos(lat)
+    ans = u0 * cos(lat) / planet_radius
   end function calc_u
 
   function calc_v(lat, pres, t) result(ans)
@@ -65,6 +66,7 @@ end subroutine uv_hadley
     tmp = K * cos(lat) * cos(K * lat) - 2.0d0 * sin(K * lat) * sin(lat)
     
     ans = ans * tmp
+    ans = ans / 100.0d0
   end function calc_omega
 
   function calc_rho(pres) result(ans)

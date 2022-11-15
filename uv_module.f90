@@ -79,7 +79,7 @@ contains
     ans = ans / tau
   end function calc_va
 
-  function calc_omega(lon, lat, p, t) result(ans)
+  function calc_omega(lon, lat, p, t) result(ans)  !hPa単位で計算!!!!!!!!!!!!!
     implicit none
     real(8), intent(in) :: lon, lat, p, t
     real(8) :: ans
