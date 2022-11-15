@@ -61,7 +61,15 @@ module upstream3d_module
             do
               lon0 = modulo(atan2(y0, x0) + pi2, pi2)
               lat0 = asin(z0)
-              p1 = p - dt * calc_omega(lon0, lat0, p0, t)
+              select case(case)
+              case('hadley')
+                p1 = p - dt * calc_omega_hadley(lat0, p0, t)
+              case('div')
+                p1 = p - dt * calc_omega(lon0, lat0, p0, t)
+              case default
+                print *, "No matching initial field"
+              end select
+             ! p1 = p - dt * calc_omega(lon0, lat0, p0, t)
               call uv2xyz(un,vn,lon,lat,xd,yd,zd) ! normalized Cartesian velocity
               ! correction factor
               bk = 1.0d0/sqrt(1.0d0+dt*dt*(xd*xd+yd*yd+zd*zd)-2.0d0*dt*(xd*xg+yd*yg+zd*zg))
