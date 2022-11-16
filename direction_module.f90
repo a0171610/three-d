@@ -69,7 +69,7 @@ contains
 
     integer(8) :: i, j, k
 
-    do i = 1, nstep
+    do i = 2, nstep
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
