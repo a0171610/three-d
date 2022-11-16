@@ -11,6 +11,7 @@ program advection
   use direction_module, only: direction_init, direction_timeint, direction_clean
   !use direction_2step_module, only: direction_2step_init, direction_2step_timeint, direction_2step_clean
   use analysis_module, only: error_log
+  use new_diagram_module, only: new_diagram_init, new_diagram_clean, new_diagram_timeint
 
   implicit none
 
@@ -37,6 +38,10 @@ program advection
       call direction_init()
       call direction_timeint()
       call direction_clean()
+    case("new")
+      call new_diagram_init()
+      call new_diagram_timeint()
+      call new_diagram_clean()
     case default
       print *, "No matching model for", model
   end select

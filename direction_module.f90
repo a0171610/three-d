@@ -4,15 +4,14 @@ module direction_module
     gu, gv, gomega, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
   private
   
-  integer(8), allocatable, private :: p(:,:), q(:,:)
   real(8), dimension(:, :, :), allocatable, private :: &
     gphi_old, dgphi, dgphim, gphim, gphix, gphiy, gphixy, &
-    midlon, midlat, deplon, deplat, gum, gvm, w, deppres, depheight, &
+    midlon, midlat, deplon, deplat, gum, gvm, deppres, depheight, &
     gphiz, gphixz, gphiyz, gphixyz
   complex(8), dimension(:, :, :), allocatable, private :: sphi1
   real(8), dimension(:, :, :), allocatable, private :: gw
 
-  private :: update, bicubic_interpolation_set
+  private :: update
   public :: direction_init, direction_timeint, direction_clean
 
 contains
@@ -29,7 +28,7 @@ contains
     allocate(sphi1(0:ntrunc, 0:ntrunc, nz),gphi_old(nlon, nlat, nz))
     allocate(gphim(nlon, nlat, nz),dgphi(nlon, nlat, nz),dgphim(nlon, nlat, nz))
     allocate(midlon(nlon, nlat, nz), midlat(nlon, nlat, nz), deppres(nlon, nlat, nz))
-    allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz), p(nlon, nlat), q(nlon, nlat))
+    allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(gum(nlon, nlat, nz), gvm(nlon, nlat, nz), depheight(nlon, nlat, nz))
     allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz), gw(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
@@ -58,7 +57,7 @@ contains
     implicit none
 
     deallocate(sphi1,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
-      midlon,midlat,deplon,deplat,p,q)
+      midlon,midlat,deplon,deplat)
     call interpolate_clean()
 
   end subroutine direction_clean
