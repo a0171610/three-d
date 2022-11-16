@@ -126,8 +126,8 @@ contains
           call check_height(depheight(i, j, k))
           idA(i, j, k) = int(aint(depheight(i, j, k) / 200.0d0)) + 1
           idB(i, j, k) = idA(i, j, k) + 1
-          ratio(i, j, k) = (depheight(i, j, k) - height(idA(i, j, k))) / 200.0d0
           ratio(i, j, k) = calculate_ratio(depheight(i,j,k) - height(idA(i,j,k)), height(idB(i,j,k)) - depheight(i,j,k))
+
           zdotA(i, j, k) = gw(i, j, k) - (height(k) - height(idA(i, j, k))) / (2.0d0 * dt)
           zdotB(i, j, k) = gw(i, j, k) - (height(k) - height(idB(i, j, k))) / (2.0d0 * dt)
           midhA(i, j, k) = (height(k) + height(idA(i, j, k))) / 2.0d0
@@ -168,7 +168,7 @@ contains
           tmppres = transorm_height_to_pressure(height(idB(i, j, k)))
           call check_pressure(tmppres)
           call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, tmp2)
-          gphi(i, j, k) = tmp1 * (1.0d0 - ratio(i, j, k)) + tmp2 * ratio(i, j, k)
+          gphi(i, j, k) = tmp1 * ratio(i, j, k) + tmp2 * (1.0d0 - ratio(i, j, k))
         enddo
       enddo
     end do
@@ -185,7 +185,7 @@ contains
         do k = 1, nz
           call check_height(midhA(i, j, k))
           call interpolate1d_linear(midhA(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * (1.0d0 - ratio(i, j, k))
+          gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * ratio(i, j, k) * dt
         enddo
       enddo
     enddo
@@ -196,7 +196,7 @@ contains
         do k = 1, nz
           call check_height(midhB(i, j, k))
           call interpolate1d_linear(midhB(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * ratio(i, j, k)
+          gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * (1.0d0 - ratio(i, j, k)) * dt
         enddo
       enddo
     enddo

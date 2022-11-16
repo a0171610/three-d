@@ -185,7 +185,7 @@ contains
         do k = 1, nz
           call check_height(midh(i, j, k))
           call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans
+          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans * dt
         enddo
       enddo
     enddo
