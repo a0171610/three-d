@@ -239,7 +239,7 @@ contains
   function calculate_ratio(a, b) result(ans)
     real(8), intent(in) :: a, b
     real(8) :: ans
-    ans = b ** 2 / (a ** 2 + b ** 2)
+    ans = b ** 4 / (a ** 4 + b ** 4)
   end function calculate_ratio
 
 end module direction_module
