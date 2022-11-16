@@ -14,6 +14,7 @@ module new_diagram_module
   real(8), dimension(:, :, :), allocatable, private :: gw
   real(8), allocatable, private :: A(:, :, :), B(:, :, :), C(:, :, :), D(:, :, :)
   real(8), dimension(:, :), allocatable, private :: gumA, gvmA, gumB, gvmB, gumC, gvmC, gumD, gvmD
+  real(8), dimension(:, :, :), allocatable, private :: dgphimA, dgphimB, dgphimC, dgphimD, midh
 
   private :: update
   public :: new_diagram_init, new_diagram_timeint, new_diagram_clean
@@ -42,6 +43,9 @@ contains
     allocate(midlonC(nlon, nlat, nz), midlatC(nlon, nlat, nz), midlonD(nlon, nlat, nz), midlatD(nlon, nlat, nz))
     allocate(gumA(nlon, nlat), gvmA(nlon, nlat), gumB(nlon, nlat), gvmB(nlon, nlat))
     allocate(gumC(nlon, nlat), gvmC(nlon, nlat), gumD(nlon, nlat), gvmD(nlon, nlat))
+    allocate(dgphimA(nlon, nlat, nz), dgphimB(nlon, nlat, nz), dgphimC(nlon, nlat, nz), dgphimD(nlon, nlat, nz))
+    allocate(pa(nlon, nlat), qa(nlon, nlat), pb(nlon, nlat), qb(nlon, nlat))
+    allocate(pc(nlon, nlat), qc(nlon, nlat), pd(nlon, nlat), qd(nlon, nlat), midh(nlon, nlat, nz))
 
     call interpolate_init(gphi)
     call interpolate1d_init(gphi(1, 1, :))
@@ -118,11 +122,12 @@ contains
     integer(8) :: i, j, k, m
     real(8), intent(in) :: t, dt
     real(8) :: tmppres, ans
-    real(8), allocatable :: zdot(:, :, :), midh(:, :, :)
+    real(8), allocatable :: zdot(:, :, :)
     integer(8), allocatable :: id(:, :, :)
     real(8), parameter :: g = 9.80616d0
+    real(8) :: tmp
 
-    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz))
+    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz))
 
     select case(case)
       case('hadley')
@@ -134,6 +139,7 @@ contains
       stop
     end select
     call find_points(gu, gv, gomega, t, 0.5d0*dt, midlonA, midlatA, deplon, deplat, deppres)
+    call set_niuv(dt)
 
     do k = 1, nz
       gw(:, :, k) = -gomega(:, :, k) / (g * rho(k))
@@ -194,11 +200,56 @@ contains
       end do
     end do
 
-    do k = 2, nz-1
-      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (height(k+1) - height(k-1))
-    end do
-    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (height(2) - height(1))
-    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    ! dF/dlon
+    do k = 1, nz
+      call legendre_synthesis_dlon(sphi(:, :, k), dgphi(:, :, k))
+    enddo
+    call tricubic_interpolate_set(dgphi, gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    call interpolate_set(dgphi)
+    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    gphim(:, :, :) = 0.0d0
+    do j = 1, nlat
+      do i = 1, nlon
+        do k = 1, nz
+          tmp = transorm_height_to_pressure(midh(i, j, k))
+          call interpolate_tricubic(midlonA(i, j, k), midlatA(i, j, k), tmp, dgphimA(i, j, k))
+          call interpolate_tricubic(midlonB(i, j, k), midlatB(i, j, k), tmp, dgphimB(i, j, k))
+          call interpolate_tricubic(midlonC(i, j, k), midlatC(i, j, k), tmp, dgphimC(i, j, k))
+          call interpolate_tricubic(midlonD(i, j, k), midlatD(i, j, k), tmp, dgphimD(i, j, k))
+
+          gphim(i, j, k) = gphim(i, j, k) + A(i, j, k) * gumA(i, j) * dgphimA(i, j, k) / cos(latitudes(j))
+         ! gphim(i, j, k) = gphim(i, j, k) + B(i, j, k) * gumB(i, j) * dgphimB(i, j, k) / cos(latitudes(j))
+         ! gphim(i, j, k) = gphim(i, j, k) + C(i, j, k) * gumC(i, j) * dgphimC(i, j, k) / cos(latitudes(j))
+         ! gphim(i, j, k) = gphim(i, j, k) + D(i, j, k) * gumD(i, j) * dgphimD(i, j, k) / cos(latitudes(j))
+        enddo
+      enddo
+    enddo
+
+    ! cos(lat)dF/dlat
+    do k = 1, nz
+      call legendre_synthesis_dlat(sphi(:, :, k), dgphi(:, :, k))
+    enddo
+    call tricubic_interpolate_set(dgphi, gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    call interpolate_set(dgphi)
+    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    do j = 1, nlat
+      do i = 1, nlon
+        do k = 1, nz
+          tmp = transorm_height_to_pressure(midh(i, j, k))
+          call interpolate_tricubic(midlonA(i, j, k), midlatA(i, j, k), tmp, dgphimA(i, j, k))
+          call interpolate_tricubic(midlonB(i, j, k), midlatB(i, j, k), tmp, dgphimB(i, j, k))
+          call interpolate_tricubic(midlonC(i, j, k), midlatC(i, j, k), tmp, dgphimC(i, j, k))
+          call interpolate_tricubic(midlonD(i, j, k), midlatD(i, j, k), tmp, dgphimD(i, j, k))
+
+          !gphim(i, j, k) = gphim(i, j, k) + A(i, j, k) * gvmA(i, j) * dgphimA(i, j, k) / cos(latitudes(j))
+         !! gphim(i, j, k) = gphim(i, j, k) + B(i, j, k) * gvmB(i, j) * dgphimB(i, j, k) / cos(latitudes(j))
+         ! gphim(i, j, k) = gphim(i, j, k) + C(i, j, k) * gvmC(i, j) * dgphimC(i, j, k) / cos(latitudes(j))
+         ! gphim(i, j, k) = gphim(i, j, k) + D(i, j, k) * gvmD(i, j) * dgphimD(i, j, k) / cos(latitudes(j))
+        enddo
+      enddo
+    enddo
+
+    gphi = gphi + dt * gphim
 
     do i = 1, nlon
       do j = 1, nlat
@@ -206,7 +257,7 @@ contains
         do k = 1, nz
           call check_height(midh(i, j, k))
           call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans
+          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans * dt
         enddo
       enddo
     enddo
@@ -249,12 +300,13 @@ contains
     use math_module, only: math_pi, pi2=>math_pi2
     use sphere_module, only: xyz2uv, lonlat2xyz
     use interpolate_module, only: find_stencil_
+    use planet_module, only: transorm_height_to_pressure
     implicit none
 
     real(8), intent(in) :: dt
 
     integer(8) :: i, j, k
-    real(8) :: dlonr
+    real(8) :: dlonr, pr
     integer(8), dimension(4) :: tmp1, tmp2
 
     dlonr = 0.5d0 * nlon / math_pi
@@ -269,27 +321,45 @@ contains
           pc(i, j) = tmp1(3); qc(i, j) = tmp2(3)
           pd(i, j) = tmp1(4); qd(i, j) = tmp2(4)
 
+          pr = transorm_height_to_pressure(midh(i, j, k))
 
-  call calc_niuv(dt, pa(i, j), qa(i, j), longitudes(i), latitudes(j), midlonA(i, j, k), midlatA(i, j, k), gumA(i, j), gvmA(i, j))
-  call calc_niuv(dt, pb(i, j), qb(i, j), longitudes(i), latitudes(j), midlonB(i, j, k), midlatB(i, j, k), gumB(i, j), gvmB(i, j))
-  call calc_niuv(dt, pc(i, j), qc(i, j), longitudes(i), latitudes(j), midlonC(i, j, k), midlatC(i, j, k), gumC(i, j), gvmC(i, j))
-  call calc_niuv(dt, pd(i, j), qd(i, j), longitudes(i), latitudes(j), midlonD(i, j, k), midlatD(i, j, k), gumD(i, j), gvmD(i, j))
+          call calc_niuv(dt, pa(i, j), qa(i, j), longitudes(i), latitudes(j), midlonA(i, j, k), &
+           midlatA(i, j, k), pr, gumA(i, j), gvmA(i, j))
+          call calc_niuv(dt, pb(i, j), qb(i, j), longitudes(i), latitudes(j), midlonB(i, j, k), &
+            midlatB(i, j, k), pr, gumB(i, j), gvmB(i, j))
+          call calc_niuv(dt, pc(i, j), qc(i, j), longitudes(i), latitudes(j), midlonC(i, j, k), &
+            midlatC(i, j, k), pr, gumC(i, j), gvmC(i, j))
+          call calc_niuv(dt, pd(i, j), qd(i, j), longitudes(i), latitudes(j), midlonD(i, j, k), &
+            midlatD(i, j, k), pr, gumD(i, j), gvmD(i, j))
         end do
       end do
     enddo
-        
+
   end subroutine  set_niuv
 
+  subroutine set_velocity_zero
+    implicit none
+    gumA(:, :) = 0.0d0
+    gumB(:, :) = 0.0d0
+    gumC(:, :) = 0.0d0
+    gumD(:, :) = 0.0d0
+    gvmA(:, :) = 0.0d0
+    gvmB(:, :) = 0.0d0
+    gvmC(:, :) = 0.0d0
+    gvmD(:, :) = 0.0d0
+  end subroutine set_velocity_zero
+
   ! Ritchie1987 式(45)のu^* - Uをgumに詰める(gvmも)
-  subroutine calc_niuv(dt, p, q, lon1, lat, midlon, midlat, gum, gvm)
+  subroutine calc_niuv(dt, p, q, lon1, lat, midlon, midlat, midp, gum, gvm)
     use grid_module, only: latitudes => lat, longitudes => lon
     use interpolate_module, only: interpolate_bilinearuv
     use math_module, only: math_pi, pi2=>math_pi2
     use sphere_module, only: xyz2uv, lonlat2xyz
+    use uv_module, only: calc_ua, calc_ud, calc_va
     implicit none
     real(8), intent(in) :: dt
     integer(8), intent(in) :: p, q
-    real(8), intent(in) :: lon1, lat
+    real(8), intent(in) :: lon1, lat, midp
     real(8), intent(out) :: gum, gvm
     real(8), intent(out) :: midlon, midlat
 
@@ -313,14 +383,55 @@ contains
     ydot = (yg - yr) / dt
     zdot = (zg - zr) / dt
     call xyz2uv(xdot, ydot, zdot, midlon, midlat, u, v)  !Richie1987式(49)
-    gum = gum + u
-    gvm = gvm + v
+    gum = u
+    gvm = v
 
     call interpolate_bilinearuv(midlon, midlat, u, v)
+    u = calc_ua(midlon, midlat, midp) + calc_va(midlon, midlat, midp)
+    v = calc_va(midlon, midlat, midp)
 
     gum = gum - u
     gvm = gvm - v
 
   end subroutine calc_niuv
+
+  subroutine tricubic_interpolate_set(f, fx, fy, fz, fxy, fxz, fyz, fxyz)
+    use legendre_transform_module, only: legendre_analysis, legendre_synthesis_dlat, legendre_synthesis_dlon, &
+      legendre_synthesis_dlonlat
+    implicit none
+    real(8), intent(in) :: f(:, :, :)
+    real(8), intent(out), dimension(:, :, :) :: fx, fy, fz, fxy, fxz, fyz, fxyz
+
+    integer(8) :: j, k
+
+    do k = 1, nz
+      call legendre_analysis(f(:, :, k), sphi1(:, :, k))
+      call legendre_synthesis_dlon(sphi1(:, :, k), fx(:, :, k))
+      call legendre_synthesis_dlat(sphi1(:, :, k), fy(:, :, k))
+      call legendre_synthesis_dlonlat(sphi1(:, :, k), fxy(:, :, k))
+      do j = 1, nlat
+        fy(:, j, k) = fy(:, j, k) / cos(latitudes(j))
+        fxy(:, j, k) = fxy(:, j, k) / cos(latitudes(j))
+      end do
+    end do
+
+    do k = 2, nz-1
+      fz(:, :, k) = (f(:, :, k + 1) - f(:, :, k - 1)) / (height(k+1) - height(k-1))
+      fxz(:, :, k) = (fx(:, :, k + 1) - fx(:, :, k - 1)) / (height(k+1) - height(k-1))
+      fyz(:, :, k) = (fy(:, :, k + 1) - fy(:, :, k - 1)) / (height(k+1) - height(k-1))
+      fxyz(:, :, k) = (fxy(:, :, k + 1) - fxy(:, :, k - 1)) / (height(k+1) - height(k-1))
+    end do
+
+    fz(:, :, 1) = (f(:, :, 2) - f(:, :, 1)) / (height(2) - height(1))
+    fxz(:, :, 1) = (fx(:, :, 2) - fx(:, :, 1)) / (height(2) - height(1))
+    fyz(:, :, 1) = (fy(:, :, 2) - fy(:, :, 1)) / (height(2) - height(1))
+    fxyz(:, :, 1) = (fxy(:, :, 2) - fxy(:, :, 1)) / (height(2) - height(1))
+
+    fz(:, :, nz) = (f(:, :, nz) - f(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    fxz(:, :, nz) = (fx(:, :, nz) - fx(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    fyz(:, :, nz) = (fy(:, :, nz) - fy(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    fxyz(:, :, nz) = (fxy(:, :, nz) - fxy(:, :, nz - 1)) / (height(nz) - height(nz-1))
+
+  end subroutine tricubic_interpolate_set
 
 end module new_diagram_module
