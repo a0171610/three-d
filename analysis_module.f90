@@ -1,5 +1,5 @@
 module analysis_module
-  use grid_module, only: gphi, gphi_initial, lat, wgt, lon, ntrunc, Umax
+  use grid_module, only: gphi, gphi_initial, lat, wgt, lon, ntrunc, Umax, nz
   use legendre_transform_module, only: legendre_analysis
   use math_module, only: math_pi
   use planet_module, only: planet_radius
@@ -10,7 +10,7 @@ contains
 
   subroutine error_log()
     implicit none
-    integer(8) :: i, j, nlon, nlat
+    integer(8) :: i, j, k, nlon, nlat
     real(8), allocatable :: w(:, :)
     real(8) :: dq, dqp, rmse
     real(8) :: sum_g1, sum_g2
@@ -44,23 +44,28 @@ contains
     !  write(14,*) lat(i), gphi(1, i) - gphi_initial(1, i)
     end do
 
-    !dq = sum(gphi(:, :) - gphi_initial(:, :)) / dble(nlat * nlon)
-
+    dq = 0.0d0
     dqp = 0.0d0
     do i = 1, nlon
         do j = 1, nlat
-    !        if(gphi(i, j) > gphi_initial(i, j)) then
-    !          dqp = dqp + gphi(i, j) - gphi_initial(i, j)
-    !          dqp = dqp / dble(nlon * nlat)
-    !        endif
+          do k = 1, nz
+            dq = dqp + (gphi(i, j, k) - gphi_initial(i, j, k)) * wgt(j)
+            dq = dq / dble(nlon * nlat)
+            if(gphi(i, j, k) > gphi_initial(i, j, k)) then
+              dqp = dqp + (gphi(i, j, k) - gphi_initial(i, j, k)) * wgt(j)
+              dqp = dqp / dble(nlon * nlat)
+            endif
+          enddo
         end do
     end do
 
     rmse = 0.0d0
     do i = 1, nlon
       do j = 1, nlat
-    !    rmse = rmse + (gphi(i, j) - gphi_initial(i, j)) ** 2
-        rmse = rmse / dble(nlon * nlat)
+        do k = 1, nz
+          rmse = rmse + (gphi(i, j, k) - gphi_initial(i, j, k)) ** 2
+          rmse = rmse / dble(nlon * nlat)
+        enddo
       end do
     end do
     rmse = sqrt(rmse)
@@ -71,10 +76,12 @@ contains
     sum_g2 = 0.0d0
 
     do i = 1, nlon
-        do j = 1, nlat
-    !        sum_g1 = sum_g1 + gphi_initial(i, j)! * w(i, j)
-    !        sum_g2 = sum_g2 + gphi(i, j)! * w(i, j)
-        end do
+      do j = 1, nlat
+        do k = 1, nz
+          sum_g1 = sum_g1 + gphi_initial(i, j, k) * w(i, j)
+          sum_g2 = sum_g2 + gphi(i, j, k) * w(i, j)
+        enddo
+      end do
     end do
     write(*,*) "initial global mass sum", sum_g1, "final global mass sum", sum_g2
 
@@ -84,8 +91,10 @@ contains
 
     do i = 1, nlon
       do j = 1, nlat
-    !    sum_g1 = sum_g1 + ((gphi(i, j) - gphi_initial(i, j)) * wgt(j)) ** 2
-    !    sum_g2 = sum_g2 + (gphi_initial(i, j) * wgt(j)) ** 2
+        do k = 1, nz
+          sum_g1 = sum_g1 + ((gphi(i, j, k) - gphi_initial(i, j, k)) * wgt(j)) ** 2
+          sum_g2 = sum_g2 + (gphi_initial(i, j, k) * wgt(j)) ** 2
+        enddo
       enddo
     enddo
 

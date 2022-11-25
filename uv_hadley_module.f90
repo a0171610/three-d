@@ -66,7 +66,7 @@ end subroutine uv_hadley
     tmp = K * cos(lat) * cos(K * lat) - 2.0d0 * sin(K * lat) * sin(lat)
     
     ans = ans * tmp
-    ans = ans / 100.0d0
+    ans = ans / 1000.0d0
   end function calc_omega
 
   function calc_rho(pres) result(ans)
