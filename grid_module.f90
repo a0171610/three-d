@@ -9,10 +9,10 @@ module grid_module
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
   complex(8), dimension(:, :, :), allocatable, public :: sphi, sphi_old
-  real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gomega
-  real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, pres, sigma, height, rho
+  real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gw
+  real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, height
   real(8), public :: Umax, dlat(nlat), dlat4(nlat)
-  real(8), public, parameter :: ps = 1000.0d0, Rd = 287.0d-3, T0 = 300.0d0
+  real(8), public, parameter :: ps = 1000.0d0, T0 = 300.0d0
 
   public :: grid_init, grid_clean, pole_regrid
 
@@ -34,9 +34,9 @@ contains
     integer(8) :: i, j, k, m, n
     real(8) :: dlon, eps
 
-    allocate(lon(nlon), lat(nlat), coslat(nlat), coslatr(nlat), wgt(nlat), pres(nz), sigma(nz), height(nz), rho(nz))
+    allocate(lon(nlon), lat(nlat), coslat(nlat), coslatr(nlat), wgt(nlat), height(nz))
     allocate(gphi(nlon,nlat, nz), gphi_initial(nlon, nlat, nz), gu(nlon,nlat, nz), gv(nlon,nlat, nz))
-    allocate(sphi(0:ntrunc,0:ntrunc, nz), sphi_old(0:ntrunc,0:ntrunc, nz), gomega(nlon, nlat, nz))
+    allocate(sphi(0:ntrunc,0:ntrunc, nz), sphi_old(0:ntrunc,0:ntrunc, nz), gw(nlon, nlat, nz))
  
     dlon = pi2/nlon
     do i=1, nlon
@@ -62,9 +62,6 @@ contains
 
     do i = 1, nz
       height(i) = dble(i - 1) * 200.0d0
-      pres(i) = transorm_height_to_pressure(height(i))
-      sigma(i) = pres(i) / ps
-      rho(i) = pres(i) / (Rd * T0)
     end do
 
     select case(case)
@@ -91,9 +88,9 @@ contains
 
     select case(case)
       case('hadley')
-        call uv_hadley(0.0d0, lon, lat, pres, gu, gv, gomega)
+        call uv_hadley(0.0d0, lon, lat, height, gu, gv, gw)
       case('div')
-        call uv_div(0.0d0, lon, lat, pres, gu, gv, gomega)
+        call uv_div(0.0d0, lon, lat, height, gu, gv, gw)
       case default
         print *, "No matching initial field"
       stop

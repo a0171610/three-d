@@ -1,7 +1,7 @@
 module new_diagram_module
 
-  use grid_module, only: nlon, nlat, ntrunc, nz, lon, pres, coslatr, height, rho, &
-    gu, gv, gomega, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
+  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height,  &
+    gu, gv, gw, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
   private
   
   integer(8), dimension(:, :), allocatable, private :: pa, qa, pb, qb, pc, qc, pd, qd
@@ -11,7 +11,6 @@ module new_diagram_module
     deplon, deplat, deppres, depheight, &
     gphiz, gphixz, gphiyz, gphixyz
   complex(8), dimension(:, :, :), allocatable, private :: sphi1
-  real(8), dimension(:, :, :), allocatable, private :: gw
   real(8), allocatable, private :: A(:, :, :), B(:, :, :), C(:, :, :), D(:, :, :)
   real(8), dimension(:, :), allocatable, private :: gumA, gvmA, gumB, gvmB, gumC, gvmC, gumD, gvmD
   real(8), dimension(:, :, :), allocatable, private :: dgphimA, dgphimB, dgphimC, dgphimD, midh
@@ -36,7 +35,7 @@ contains
     allocate(deppres(nlon, nlat, nz))
     allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(depheight(nlon, nlat, nz))
-    allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz), gw(nlon, nlat, nz))
+    allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
     allocate(A(nlon, nlat, nz), B(nlon, nlat, nz), C(nlon, nlat, nz), D(nlon, nlat, nz))
     allocate(midlonA(nlon, nlat, nz), midlatA(nlon, nlat, nz), midlonB(nlon, nlat, nz), midlatB(nlon, nlat, nz))
@@ -131,19 +130,15 @@ contains
 
     select case(case)
       case('hadley')
-        call uv_hadley(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_hadley(t, lon, latitudes, height, gu, gv, gw)
       case('div')
-        call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_div(t, lon, latitudes, height, gu, gv, gw)
       case default
         print *, "No matching initial field"
       stop
     end select
-    call find_points(gu, gv, gomega, t, 0.5d0*dt, midlonA, midlatA, deplon, deplat, deppres)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlonA, midlatA, deplon, deplat, deppres)
     call set_niuv(dt)
-
-    do k = 1, nz
-      gw(:, :, k) = -gomega(:, :, k) / (g * rho(k))
-    enddo
 
     do k = 1, nz
       do i = 1, nlon

@@ -67,21 +67,19 @@ module interpolate3d_module
   
     end subroutine  interpolate_clean
   
-    subroutine interpolate_tricubic(lon, lat, pres, fi)
+    subroutine interpolate_tricubic(lon, lat, h, fi)
       use tricubic_module, only: tricof, trint
       use planet_module, only: transorm_pressure_to_height
       implicit none
   
-      real(8), intent(in) :: lon, lat, pres
+      real(8), intent(in) :: lon, lat, h
       real(8), intent(out) :: fi
   
       real(8), dimension(8) :: z, zx, zy, zz, zxy, zxz, zyz, zxyz
       integer(8) :: k
-      real(8) :: dlat, h
+      real(8) :: dlat
       real(8), parameter :: dh = 200.0d0, eps = 1.0d-7
 
-      h = transorm_pressure_to_height(pres)
-  
       call find_stencil(lon, lat, h)
       dlat = lat_extend(js(4)) - lat_extend(js(1))
       do k = 1, 8

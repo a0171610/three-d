@@ -1,10 +1,10 @@
 module semilag_module
 
-  use grid_module, only: nlon, nlat, nz, ntrunc, gphi, pres, rho, height, &
-    gu, gv, gomega, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
+  use grid_module, only: nlon, nlat, nz, ntrunc, gphi, height, &
+    gu, gv, gw, gphi, sphi_old, sphi, latitudes=>lat, lon, coslatr, wgt
   private
   
-  real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, deplon, deplat, deppres
+  real(8), dimension(:, :, :), allocatable, private :: midlon, midlat, deplon, deplat, deph
   real(8), dimension(:, :, :), allocatable, private :: gphi_old, gphi_initial, gphix, gphiy, gphixy
   real(8), dimension(:, :, :), allocatable, private :: gphiz, gphixz, gphiyz, gphixyz
 
@@ -22,7 +22,7 @@ contains
 
     allocate(gphi_old(nlon, nlat, nz), gphix(nlon, nlat, nz),gphiy(nlon, nlat, nz),gphixy(nlon, nlat, nz), &
              midlon(nlon,nlat,nz),midlat(nlon,nlat,nz),deplon(nlon,nlat,nz),deplat(nlon,nlat,nz), gphi_initial(nlon, nlat, nz), &
-             deppres(nlon, nlat, nz))
+             deph(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
     call interpolate_init(gphi)
 
@@ -36,9 +36,9 @@ contains
       midlat(:, j, :) = latitudes(j)
     end do
     open(11, file="animation.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-        write(11,*) lon(i), latitudes(j), gphi(i, j, 24)
+    do i = 1, nlat
+      do j = 1, nz
+        write(11,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       end do        
     end do
 
@@ -108,15 +108,15 @@ contains
 
     select case(case)
       case('hadley')
-        call uv_hadley(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_hadley(t, lon, latitudes, height, gu, gv, gw)
       case('div')
-        call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_div(t, lon, latitudes, height, gu, gv, gw)
       case default
         print *, "No matching initial field"
       stop
     end select
 
-    call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deph)
     do k = 1, nz
       call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
     enddo
@@ -157,7 +157,7 @@ contains
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deppres(i, j, k), gphi(i,j,k))
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deph(i, j, k), gphi(i,j,k))
         enddo
       enddo
     end do

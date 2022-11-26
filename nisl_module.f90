@@ -1,7 +1,7 @@
 module nisl_module
 
-  use grid_module, only: nlon, nlat, ntrunc, nz, lon, pres, coslatr, height, rho, &
-    gu, gv, gomega, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
+  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height, &
+    gu, gv, gw, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
   private
   
   real(8), dimension(:, :, :), allocatable, private :: &
@@ -9,7 +9,6 @@ module nisl_module
     midlon, midlat, deplon, deplat, gum, gvm, deppres, depheight, &
     gphiz, gphixz, gphiyz, gphixyz
   complex(8), dimension(:, :, :), allocatable, private :: sphi1
-  real(8), dimension(:, :, :), allocatable, private :: gw
 
   private :: update
   public :: nisl_init, nisl_timeint, nisl_clean
@@ -30,7 +29,7 @@ contains
     allocate(midlon(nlon, nlat, nz), midlat(nlon, nlat, nz), deppres(nlon, nlat, nz))
     allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(gum(nlon, nlat, nz), gvm(nlon, nlat, nz), depheight(nlon, nlat, nz))
-    allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz), gw(nlon, nlat, nz))
+    allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
 
     call interpolate_init(gphi)
@@ -115,18 +114,14 @@ contains
 
     select case(case)
       case('hadley')
-        call uv_hadley(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_hadley(t, lon, latitudes, height, gu, gv, gw)
       case('div')
-        call uv_div(t, lon, latitudes, pres, gu, gv, gomega)
+        call uv_div(t, lon, latitudes, height, gu, gv, gw)
       case default
         print *, "No matching initial field"
       stop
     end select
-    call find_points(gu, gv, gomega, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
-
-    do k = 1, nz
-      gw(:, :, k) = -gomega(:, :, k) / (g * rho(k))
-    enddo
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
 
     do k = 1, nz
       do i = 1, nlon

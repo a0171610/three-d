@@ -1,4 +1,4 @@
-filename = "uv.txt"
+filename = "uv_test.txt"
 text = open(filename).read().split("\n")
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,8 +18,8 @@ fig, ax = plt.subplots(figsize=(10,5))
 cntr = ax.tricontourf(X, Y, G, 14, cmap="jet")
 fig.colorbar(cntr, ax=ax)
 ax.grid()
-plt.xlim(0.0, 360.0)
-plt.ylim(-90.0, 90.0)
+#plt.xlim(0.0, 360.0)
+#plt.ylim(-90.0, 90.0)
 plt.xlabel('Longitude')
 plt.ylabel('Latitude')
 #plt.title(r'$\omega$')

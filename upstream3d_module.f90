@@ -1,6 +1,6 @@
 module upstream3d_module
   ! finds departure and mid-points
-    use grid_module, only: latitudes=>lat, pres
+    use grid_module, only: latitudes=>lat, height
     use sphere_module, only: lonlat2xyz, uv2xyz
     use time_module, only: model
     implicit none
@@ -14,18 +14,18 @@ module upstream3d_module
   contains
   !! midlon, midlatはdt前の出発点(middle), deplon, deplatは2*dt前, uとvには時刻tのものを入れる(式(31)を参照)
 
-    subroutine find_points(u, v, w, t, dt, midlon, midlat, deplon, deplat, depp)
+    subroutine find_points(u, v, w, t, dt, midlon, midlat, deplon, deplat, deph)
       use math_module, only: pi2=>math_pi2
-      use uv_module, only: calc_omega, calc_ua, calc_va, calc_ud
-      use uv_hadley_module, only: calc_omega_hadley=>calc_omega, calc_u, calc_v
+      use uv_module, only: calc_w, calc_ua, calc_va, calc_ud
+      use uv_hadley_module, only: calc_w_hadley=>calc_w, calc_u, calc_v
       use time_module, only: case
       implicit none
   
       real(8), dimension(:, :, :), intent(in) :: u, v, w
       real(8), intent(in) :: t, dt
       real(8), dimension(:, :, :), intent(inout) :: midlon, midlat
-      real(8), dimension(:, :, :), intent(out) :: deplon, deplat, depp
-      real(8), parameter :: pt = 254.944d0, eps = 1.0d-6, ps = 1000.0d0
+      real(8), dimension(:, :, :), intent(out) :: deplon, deplat, deph
+      real(8), parameter :: ht = 12000.0d0, eps = 1.0d-6, hs = 0.0d0
 
       integer(8) :: nx, ny, nz, i, j, k, step
       real(8) :: un, vn, wn, &     ! normalised velocity
@@ -34,8 +34,8 @@ module upstream3d_module
                        xg, yg, zg, & ! arival point in Cartesian coordinates
                        x0, y0, z0, & ! present point in Cartesian coordinates
                        x1, y1, z1, & ! updated point in Cartesian coordinates
-                       lon, lat, p, err, &
-                       p0, p1, lon0, lat0
+                       lon, lat, h, err, &
+                       h0, h1, lon0, lat0
 
       nx = size(u, 1)
       ny = size(u, 2)
@@ -50,12 +50,12 @@ module upstream3d_module
             wn = w(i, j, k)
             lon = pi2*dble(i-1)/dble(nx) ! calculate (lon,lat) from (i,j)
             lat = latitudes(j)
-            p = pres(k)
+            h = height(k)
 
             call lonlat2xyz(lon, lat, xg, yg, zg) ! transform into Cartesian coordinates
             ! r = g as an initial point for the 1st time step, 最初midlat, midlonには格子点上の値が入っている
             call lonlat2xyz(midlon(i, j, k), midlat(i, j, k), x0, y0, z0)
-            p0 = pres(k)
+            h0 = height(k)
             step = 1
 
             do
@@ -63,9 +63,9 @@ module upstream3d_module
               lat0 = asin(z0)
               select case(case)
               case('hadley')
-                p1 = p - dt * calc_omega_hadley(lat0, p0, t)
+                h1 = h - dt * calc_w_hadley(lat0, h0, t)
               case('div')
-                p1 = p - dt * calc_omega(lon0, lat0, p0, t)
+                h1 = h - dt * calc_w(lon0, lat0, h0, t)
               case default
                 print *, "No matching initial field"
               end select
@@ -83,9 +83,9 @@ module upstream3d_module
               select case(case)
                 case('hadley')
                   un = calc_u(lat)
-                  vn = calc_v(lat, p1, t)
+                  vn = calc_v(lat, h1, t)
                 case('div')
-                  un = calc_ua(lon, lat, t) + calc_ud(lon, lat, p1, t)
+                  un = calc_ua(lon, lat, t) + calc_ud(lon, lat, h1, t)
                   vn = calc_va(lon, lat, t)
                 case default
                   print *, "No matching initial field"
@@ -97,7 +97,7 @@ module upstream3d_module
               x0 = x1 ! save as the current point
               y0 = y1
               z0 = z1
-              p0 = p1
+              h0 = h1
               step = step + 1
               if ((err<small).or.(step>itermax)) then
                 exit
@@ -116,19 +116,21 @@ module upstream3d_module
             deplat(i, j, k) = asin(z1)
             select case(case)
             case('hadley')
-              depp(i, j, k) = p - 2.0d0 * dt * calc_omega_hadley(lat, p1, t)
+              deph(i, j, k) = h - 2.0d0 * dt * calc_w_hadley(lat, h1, t)
             case('div')
-              depp(i, j, k) = p - 2.0d0 * dt * calc_omega(lon, lat, p1, t)
+              deph(i, j, k) = h - 2.0d0 * dt * calc_w(lon, lat, h1, t)
             case default
               print *, "No matching initial field"
             stop
           end select
-            if (depp(i, j, k) < pt - eps) then
-              depp(i, j, k) = pt - eps
+            if (deph(i, j, k) > ht - eps) then
+              deph(i, j, k) = ht - eps
             endif
-            if (depp(i, j, k) > ps - eps) then
-              depp(i, j, k) = ps - eps
+            if (deph(i, j, k) < hs - eps) then
+              deph(i, j, k) = hs - eps
             endif
+
+           ! write(*, *) height(k), deph(i, j, k)
 
           enddo
         end do
