@@ -97,6 +97,7 @@ module upstream3d_module
               x0 = x1 ! save as the current point
               y0 = y1
               z0 = z1
+              p0 = p1
               step = step + 1
               if ((err<small).or.(step>itermax)) then
                 exit

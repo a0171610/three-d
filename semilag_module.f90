@@ -69,41 +69,25 @@ contains
     end do
     close(10)
 
-    do i = 1, nstep/2
+    do i = 1, nstep
       call update((i-0.5d0)*deltat, deltat)
       write(*, *) "step=", i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
-        do j = 1, nlon
-            do k = 1, nlat
-                write(11,*) lon(j), latitudes(k), gphi(j, k, 25)
-            end do
+        do j = 1, nlat
+          do k = 1, nz
+            write(11,*) latitudes(j), height(k), gphi(nlon/2, j, k)
+          end do
         end do
-      endif
-      if (i == nstep / 2) then
-        open(10, file="half.txt")
-        do j = 1, nlon
-          do k = 1, nlat
-            write(10,*) lon(j), latitudes(k), gphi(j, k, 25)
-          enddo
-        enddo
-        close(10)
       endif
     end do
     close(11)
     open(10, file="log.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-        write(10,*) lon(i), latitudes(j), gphi(i, j, 25)
+    do i = 1, nlat
+      do j = 1, nz
+        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       enddo
     enddo
     close(10)
-    open(12, file="error.txt")
-    do i = 1, nlon
-        do j = 1, nlat
-      !      write(12,*) lon(i), latitudes(j), gphi_initial(i, j) - gphi(i, j)
-        end do
-    end do
-
   end subroutine semilag_timeint
 
   subroutine update(t, dt)

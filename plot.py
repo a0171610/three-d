@@ -1,4 +1,4 @@
-filename = "half.txt"
+filename = "log.txt"
 text = open(filename).read().split("\n")
 import numpy as np
 import matplotlib.pyplot as plt

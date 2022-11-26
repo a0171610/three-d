@@ -43,9 +43,9 @@ contains
 
 
     open(11, file="animation.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-          write(11,*) longitudes(i), latitudes(j), gphi(i, j, 25)
+    do i = 1, nlat
+      do j = 1, nz
+          write(11,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       end do        
     end do
     call update(0.0d0, deltat)
@@ -73,18 +73,18 @@ contains
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
-        do j = 1, nlon
-            do k = 1, nlat
-              write(11,*) longitudes(j), latitudes(k), gphi(j, k, 25)
+        do j = 1, nlat
+            do k = 1, nz
+              write(11,*) latitudes(j), height(k), gphi(nlon/2, j, k)
             end do
         end do
       endif
     end do
     close(11)
-        open(10, file="log.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-        write(10,*) lon(i), latitudes(j), gphi(i, j, 25)
+    open(10, file="log.txt")
+    do i = 1, nlat
+      do j = 1, nz
+        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       enddo
     enddo
     close(10)
