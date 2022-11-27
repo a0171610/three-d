@@ -8,7 +8,7 @@ module new_diagram_module
   real(8), dimension(:, :, :), allocatable, private :: midlonA, midlatA, midlonB, midlatB, midlonC, midlatC, midlonD, midlatD
   real(8), dimension(:, :, :), allocatable, private :: &
     gphi_old, dgphi, dgphim, gphim, gphix, gphiy, gphixy, &
-    deplon, deplat, deppres, depheight, &
+    deplon, deplat, depheight, &
     gphiz, gphixz, gphiyz, gphixyz
   complex(8), dimension(:, :, :), allocatable, private :: sphi1
   real(8), allocatable, private :: A(:, :, :), B(:, :, :), C(:, :, :), D(:, :, :)
@@ -32,7 +32,6 @@ contains
 
     allocate(sphi1(0:ntrunc, 0:ntrunc, nz),gphi_old(nlon, nlat, nz))
     allocate(gphim(nlon, nlat, nz),dgphi(nlon, nlat, nz),dgphim(nlon, nlat, nz))
-    allocate(deppres(nlon, nlat, nz))
     allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(depheight(nlon, nlat, nz))
     allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
@@ -137,13 +136,12 @@ contains
         print *, "No matching initial field"
       stop
     end select
-    call find_points(gu, gv, gw, t, 0.5d0*dt, midlonA, midlatA, deplon, deplat, deppres)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlonA, midlatA, deplon, deplat, depheight)
     call set_niuv(dt)
 
     do k = 1, nz
       do i = 1, nlon
         do j = 1, nlat
-          depheight(i, j, k) = transorm_pressure_to_height(deppres(i, j, k))
           call check_height(depheight(i, j, k))
           id(i, j, k) = int(anint(depheight(i, j, k) / 200.0d0)) + 1
           zdot(i, j, k) = gw(i, j, k) - (height(k) - height(id(i, j, k))) / (2.0d0 * dt)

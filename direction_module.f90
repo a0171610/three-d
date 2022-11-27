@@ -6,7 +6,7 @@ module direction_module
   
   real(8), dimension(:, :, :), allocatable, private :: &
     gphi_old, dgphi, dgphim, gphim, gphix, gphiy, gphixy, &
-    midlon, midlat, deplon, deplat, gum, gvm, deppres, depheight, &
+    midlon, midlat, deplon, deplat, gum, gvm, depheight, &
     gphiz, gphixz, gphiyz, gphixyz
   complex(8), dimension(:, :, :), allocatable, private :: sphi1
 
@@ -26,7 +26,7 @@ contains
 
     allocate(sphi1(0:ntrunc, 0:ntrunc, nz),gphi_old(nlon, nlat, nz))
     allocate(gphim(nlon, nlat, nz),dgphi(nlon, nlat, nz),dgphim(nlon, nlat, nz))
-    allocate(midlon(nlon, nlat, nz), midlat(nlon, nlat, nz), deppres(nlon, nlat, nz))
+    allocate(midlon(nlon, nlat, nz), midlat(nlon, nlat, nz))
     allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(gum(nlon, nlat, nz), gvm(nlon, nlat, nz), depheight(nlon, nlat, nz))
     allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
@@ -92,7 +92,6 @@ contains
 
   subroutine update(t, dt)
     use uv_module, only: uv_div
-    use planet_module, only: transorm_pressure_to_height, transorm_height_to_pressure
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -103,7 +102,7 @@ contains
 
     integer(8) :: i, j, k, m
     real(8), intent(in) :: t, dt
-    real(8) :: tmppres, ans, tmp1, tmp2
+    real(8) :: ans, tmp1, tmp2
     real(8), allocatable :: zdotA(:, :, :), zdotB(:, :, :), midhA(:, :, :), midhB(:, :, :), ratio(:, :, :)
     integer(8), allocatable ::  idA(:, :, :), idB(:, :, :)
     real(8), parameter :: g = 9.80616d0
@@ -112,12 +111,11 @@ contains
     allocate(idA(nlon, nlat, nz), idB(nlon, nlat, nz), ratio(nlon, nlat, nz))
 
     call uv_div(t, lon, latitudes, height, gu, gv, gw)
-    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deppres)
+    call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, depheight)
 
     do k = 1, nz
       do i = 1, nlon
         do j = 1, nlat
-          depheight(i, j, k) = transorm_pressure_to_height(deppres(i, j, k))
           call check_height(depheight(i, j, k))
           idA(i, j, k) = int(aint(depheight(i, j, k) / 200.0d0)) + 1
           idB(i, j, k) = idA(i, j, k) + 1
@@ -157,12 +155,8 @@ contains
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
-          tmppres = transorm_height_to_pressure(height(idA(i, j, k)))
-          call check_pressure(tmppres)
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, tmp1)
-          tmppres = transorm_height_to_pressure(height(idB(i, j, k)))
-          call check_pressure(tmppres)
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), tmppres, tmp2)
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(idA(i, j, k)), tmp1)
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(idB(i, j, k)), tmp2)
           gphi(i, j, k) = tmp1 * ratio(i, j, k) + tmp2 * (1.0d0 - ratio(i, j, k))
         enddo
       enddo
@@ -215,20 +209,6 @@ contains
       h = 12000.d0 - eps
     endif
   end subroutine check_height
-
-  subroutine check_pressure(p)
-    implicit none
-
-    real(8), intent(inout) :: p
-    real(8), parameter :: pt = 254.944d0, eps = 1.0d-6, ps = 1000.0d0
-
-    if (p < pt - eps) then
-      p = pt - eps
-    endif
-    if (p > ps - eps) then
-      p = ps - eps
-    endif
-  end subroutine check_pressure
 
   function calculate_ratio(a, b) result(ans)
     real(8), intent(in) :: a, b
