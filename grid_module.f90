@@ -3,8 +3,8 @@ module grid_module
   private
 
   integer(8), parameter, public :: nz = 61
-  integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
-  !integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
+  !integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
+  integer(8), parameter, public ::  ntrunc = 79, nlon = 240, nlat = 120
   !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
   !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
 
@@ -12,7 +12,7 @@ module grid_module
   real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gw
   real(8), dimension(:), allocatable, public :: lon, lat, coslat, coslatr, wgt, height
   real(8), public :: Umax, dlat(nlat), dlat4(nlat)
-  real(8), public, parameter :: ps = 1000.0d0, T0 = 300.0d0
+  real(8), public, parameter :: ps = 1000.0d0, T0 = 300.0d0, dh = 12000.0d0 / dble(nz - 1)
 
   public :: grid_init, grid_clean, pole_regrid
 
@@ -61,7 +61,7 @@ contains
     end do
 
     do i = 1, nz
-      height(i) = dble(i - 1) * 200.0d0
+      height(i) = dble(i - 1) * dh
     end do
 
     select case(case)

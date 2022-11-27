@@ -1,7 +1,8 @@
 module direction_module
 
-  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height,  &
+  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height, dh, &
     gu, gv, gw, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
+  use time_module, only: case
   private
   
   real(8), dimension(:, :, :), allocatable, private :: &
@@ -40,11 +41,10 @@ contains
     enddo
     gphi(:, :, :) = gphi_old(:, :, :)
 
-
     open(11, file="animation.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-          write(11,*) longitudes(i), latitudes(j), gphi(i, j, 25)
+    do i = 1, nlat
+      do j = 1, nz
+          write(11,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       end do        
     end do
     call update(0.0d0, deltat)
@@ -68,22 +68,22 @@ contains
 
     integer(8) :: i, j, k
 
-    do i = 2, nstep
+    do i = 2, nstep/2
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
-        do j = 1, nlon
-            do k = 1, nlat
-              write(11,*) longitudes(j), latitudes(k), gphi(j, k, 25)
+        do j = 1, nlat
+            do k = 1, nz
+              write(11,*) latitudes(j), height(k), gphi(nlon/2, j, k)
             end do
         end do
       endif
     end do
     close(11)
         open(10, file="log.txt")
-    do i = 1, nlon
-      do j = 1, nlat
-        write(10,*) lon(i), latitudes(j), gphi(i, j, 25)
+    do i = 1, nlat
+      do j = 1, nz
+        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       enddo
     enddo
     close(10)
@@ -92,6 +92,7 @@ contains
 
   subroutine update(t, dt)
     use uv_module, only: uv_div
+    use uv_hadley_module, only: uv_hadley
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -110,14 +111,22 @@ contains
     allocate(zdotA(nlon, nlat, nz), zdotB(nlon, nlat, nz), midhA(nlon, nlat, nz), midhB(nlon, nlat, nz))
     allocate(idA(nlon, nlat, nz), idB(nlon, nlat, nz), ratio(nlon, nlat, nz))
 
-    call uv_div(t, lon, latitudes, height, gu, gv, gw)
+    select case(case)
+      case('hadley')
+        call uv_hadley(t, lon, latitudes, height, gu, gv, gw)
+      case('div')
+        call uv_div(t, lon, latitudes, height, gu, gv, gw)
+      case default
+        print *, "No matching initial field"
+      stop
+    end select
     call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, depheight)
 
     do k = 1, nz
       do i = 1, nlon
         do j = 1, nlat
           call check_height(depheight(i, j, k))
-          idA(i, j, k) = int(aint(depheight(i, j, k) / 200.0d0)) + 1
+          idA(i, j, k) = int(aint(depheight(i, j, k) / dh)) + 1
           idB(i, j, k) = idA(i, j, k) + 1
           ratio(i, j, k) = calculate_ratio(depheight(i,j,k) - height(idA(i,j,k)), height(idB(i,j,k)) - depheight(i,j,k))
 
@@ -155,6 +164,8 @@ contains
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
+          call check_height(height(idA(i, j, k)))
+          call check_height(height(idB(i, j, k)))
           call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(idA(i, j, k)), tmp1)
           call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(idB(i, j, k)), tmp2)
           gphi(i, j, k) = tmp1 * ratio(i, j, k) + tmp2 * (1.0d0 - ratio(i, j, k))
@@ -174,7 +185,7 @@ contains
         do k = 1, nz
           call check_height(midhA(i, j, k))
           call interpolate1d_linear(midhA(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * ratio(i, j, k) * dt
+     !     gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * ratio(i, j, k) * dt
         enddo
       enddo
     enddo
@@ -185,7 +196,7 @@ contains
         do k = 1, nz
           call check_height(midhB(i, j, k))
           call interpolate1d_linear(midhB(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * (1.0d0 - ratio(i, j, k)) * dt
+     !    gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * (1.0d0 - ratio(i, j, k)) * dt
         enddo
       enddo
     enddo

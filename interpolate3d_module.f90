@@ -1,7 +1,7 @@
 ! 3次元の鉛直軸はzでやりたい。
 module interpolate3d_module
   ! interpolate in a stencil
-    use grid_module, only: latitudes=>lat, wgt, longitudes=>lon, nlon, nlat
+    use grid_module, only: latitudes=>lat, wgt, longitudes=>lon, nlon, nlat, dh
     use sphere_module, only: lon2i, lat2j
     implicit none
     private
@@ -53,7 +53,7 @@ module interpolate3d_module
       end do
 
       do i = 1, nz
-        height(i) = dble(i - 1) * 200.0d0
+        height(i) = dble(i - 1) * dh
       end do
 
       call tricubic_init()
@@ -78,7 +78,7 @@ module interpolate3d_module
       real(8), dimension(8) :: z, zx, zy, zz, zxy, zxz, zyz, zxyz
       integer(8) :: k
       real(8) :: dlat
-      real(8), parameter :: dh = 200.0d0, eps = 1.0d-7
+      real(8), parameter :: eps = 1.0d-7
 
       call find_stencil(lon, lat, h)
       dlat = lat_extend(js(4)) - lat_extend(js(1))
@@ -197,11 +197,11 @@ module interpolate3d_module
       js(3:4) = j + 1; js(7:8) = j + 1
       u = (lat-lat_extend(j))/(lat_extend(j+1)-lat_extend(j))
 
-      ks(1) = int(h/200.0d0) + 1; ks(5) = ks(1) + 1
+      ks(1) = int(h/dh) + 1; ks(5) = ks(1) + 1
       ks(2) = ks(1); ks(3) = ks(1); ks(4) = ks(1)
       ks(6) = ks(5); ks(7) = ks(5); ks(8) = ks(5)
 
-      v = (h - (ks(1)-1)*200.0d0) / 200.0d0
+      v = (h - (ks(1)-1)*dh) / dh
 
       if(t > 1.1d0 .or. u > 1.1d0 .or. v > 1.1d0) then
         write(*,*) 'tuv', t, u, v

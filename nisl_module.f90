@@ -1,6 +1,6 @@
 module nisl_module
 
-  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height, &
+  use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height, dh, &
     gu, gv, gw, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
   private
   
@@ -93,7 +93,7 @@ contains
   subroutine update(t, dt)
     use uv_module, only: uv_div
     use time_module, only: case
-    use uv_hadley_module, only: uv_hadley
+    use uv_hadley_module, only: uv_hadley, calc_w
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -105,11 +105,11 @@ contains
     integer(8) :: i, j, k, m
     real(8), intent(in) :: t, dt
     real(8) :: ans
-    real(8), allocatable :: zdot(:, :, :), midh(:, :, :)
+    real(8), allocatable :: zdot(:, :, :), midh(:, :, :), gphi1(:, :, :)
     integer(8), allocatable :: id(:, :, :)
     real(8), parameter :: g = 9.80616d0
 
-    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz))
+    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz), gphi1(nlon, nlat, nz))
 
     select case(case)
       case('hadley')
@@ -126,7 +126,7 @@ contains
       do i = 1, nlon
         do j = 1, nlat
           call check_height(depheight(i, j, k))
-          id(i, j, k) = int(anint(depheight(i, j, k) / 200.0d0)) + 1
+          id(i, j, k) = int(anint(depheight(i, j, k) / dh)) + 1
           zdot(i, j, k) = gw(i, j, k) - (height(k) - height(id(i, j, k))) / (2.0d0 * dt)
           midh(i, j, k) = (height(k) + height(id(i, j, k))) / 2.0d0
           call check_height(midh(i, j, k))
@@ -159,16 +159,21 @@ contains
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), depheight(i, j, k), gphi(i,j,k))
+          call check_height(height(id(i, j, k)))
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(id(i, j, k)), gphi(i,j,k))
         enddo
       enddo
     end do
 
+    do k = 1, nz
+      call legendre_synthesis(sphi(:, :, k), gphi1(:, :, k))
+    enddo
+
     do k = 2, nz-1
-      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphiz(:, :, k) = (gphi1(:, :, k + 1) - gphi1(:, :, k - 1)) / (height(k+1) - height(k-1))
     end do
-    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (height(2) - height(1))
-    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphiz(:, :, 1) = (gphi1(:, :, 2) - gphi1(:, :, 1)) / (height(2) - height(1))
+    gphiz(:, :, nz) = (gphi1(:, :, nz) - gphi1(:, :, nz - 1)) / (height(nz) - height(nz-1))
 
     do i = 1, nlon
       do j = 1, nlat
@@ -176,7 +181,26 @@ contains
         do k = 1, nz
           call check_height(midh(i, j, k))
           call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + zdot(i, j, k) * ans * dt
+          gphi(i, j, k) = gphi(i, j, k) + (height(k) - height(id(i, j, k))) * ans
+        enddo
+      enddo
+    enddo
+
+    do i = 1, nlon
+      do j = 1, nlat
+        do k = 1, nz
+          gphiz(i, j, k) = gphiz(i, j, k) * calc_w(latitudes(j), height(k), t)
+        end do
+      end do
+    end do
+
+    do i = 1, nlon
+      do j = 1, nlat
+        call interpolate1d_set(gphiz(i, j, :))
+        do k = 1, nz
+          call check_height(midh(i, j, k))
+          call interpolate1d_linear(midh(i, j, k), ans)
+          gphi(i, j, k) = gphi(i, j, k) - ans * dt
         enddo
       enddo
     enddo
