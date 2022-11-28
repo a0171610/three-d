@@ -2,7 +2,7 @@ module uv_hadley_module
   use math_module, only: pi=>math_pi
   implicit none
 
-  real(8), parameter, private :: tau = 864000.0d0, K = 5.0d0, u0 = 40.0d0, w0 = 0.15d0
+  real(8), parameter, private :: tau = 86400.0d0, K = 5.0d0, u0 = 40.0d0, w0 = 0.15d0
   real(8), parameter, private :: Rd = 287.0d-3, T0 = 300.0d0, ztop = 12000.0d0
 contains
 
