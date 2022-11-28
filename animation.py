@@ -20,15 +20,13 @@ for i in range(step):
 
 ims = []
 cdir = os.getcwd()
-fig = plt.figure(figsize=(8,8))
-ax = fig.add_subplot(111)
-plt.title('semi-lag')
+
+fig, ax = plt.subplots()
 
 for i in range(step):
-    fig = plt.figure(figsize=(8,8))
-    ax = fig.add_subplot(111)
-    im = ax.tricontour(X[i, :], Y[i, :], G[i, :])
-    ax.clabel(im)
+    im = ax.tricontourf(X[i, :], Y[i, :], G[i, :], 14, cmap="jet", levels=np.linspace(-0.05,1.05, 23))
+    if i == 0:
+        fig.colorbar(im)
     add_arts = im.collections
     filename = os.path.join(cdir, "No{}.png".format(i))
     plt.savefig(filename)
