@@ -68,7 +68,7 @@ contains
 
     integer(8) :: i, j, k
 
-    do i = 2, nstep/2
+    do i = 2, nstep
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -92,7 +92,7 @@ contains
 
   subroutine update(t, dt)
     use uv_module, only: uv_div
-    use uv_hadley_module, only: uv_hadley
+    use uv_hadley_module, only: uv_hadley, calc_w
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -104,11 +104,11 @@ contains
     integer(8) :: i, j, k, m
     real(8), intent(in) :: t, dt
     real(8) :: ans, tmp1, tmp2
-    real(8), allocatable :: zdotA(:, :, :), zdotB(:, :, :), midhA(:, :, :), midhB(:, :, :), ratio(:, :, :)
+    real(8), allocatable :: zdotA(:, :, :), zdotB(:, :, :), midhA(:, :, :), midhB(:, :, :), ratio(:, :, :), gphi1(:, :, :)
     integer(8), allocatable ::  idA(:, :, :), idB(:, :, :)
     real(8), parameter :: g = 9.80616d0
 
-    allocate(zdotA(nlon, nlat, nz), zdotB(nlon, nlat, nz), midhA(nlon, nlat, nz), midhB(nlon, nlat, nz))
+    allocate(zdotA(nlon, nlat, nz), zdotB(nlon, nlat, nz), midhA(nlon, nlat, nz), midhB(nlon, nlat, nz), gphi1(nlon, nlat, nz))
     allocate(idA(nlon, nlat, nz), idB(nlon, nlat, nz), ratio(nlon, nlat, nz))
 
     select case(case)
@@ -134,7 +134,6 @@ contains
           zdotB(i, j, k) = gw(i, j, k) - (height(k) - height(idB(i, j, k))) / (2.0d0 * dt)
           midhA(i, j, k) = (height(k) + height(idA(i, j, k))) / 2.0d0
           midhB(i, j, k) = (height(k) + height(idB(i, j, k))) / 2.0d0
-          call check_height(midhA(i, j, k))
         enddo
       enddo
     enddo
@@ -173,11 +172,15 @@ contains
       enddo
     end do
 
+    do k = 1, nz
+      call legendre_synthesis(sphi(:, :, k), gphi1(:, :, k))
+    enddo
+
     do k = 2, nz-1
-      gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphiz(:, :, k) = (gphi1(:, :, k + 1) - gphi1(:, :, k - 1)) / (height(k+1) - height(k-1))
     end do
-    gphiz(:, :, 1) = (gphi(:, :, 2) - gphi(:, :, 1)) / (height(2) - height(1))
-    gphiz(:, :, nz) = (gphi(:, :, nz) - gphi(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphiz(:, :, 1) = (gphi1(:, :, 2) - gphi1(:, :, 1)) / (height(2) - height(1))
+    gphiz(:, :, nz) = (gphi1(:, :, nz) - gphi1(:, :, nz - 1)) / (height(nz) - height(nz-1))
 
     do i = 1, nlon
       do j = 1, nlat
@@ -185,18 +188,34 @@ contains
         do k = 1, nz
           call check_height(midhA(i, j, k))
           call interpolate1d_linear(midhA(i, j, k), ans)
-     !     gphi(i, j, k) = gphi(i, j, k) + zdotA(i, j, k) * ans * ratio(i, j, k) * dt
+          gphi(i, j, k) = gphi(i, j, k) + (height(k) - height(idA(i, j, k))) * ans * ratio(i, j, k)
+
+          call check_height(midhB(i, j, k))
+          call interpolate1d_linear(midhB(i, j, k), ans)
+          gphi(i, j, k) = gphi(i, j, k) + (height(k) - height(idB(i, j, k))) * ans * (1.0d0 - ratio(i, j, k))
         enddo
       enddo
     enddo
 
     do i = 1, nlon
       do j = 1, nlat
+        do k = 1, nz
+          gphiz(i, j, k) = gphiz(i, j, k) * calc_w(latitudes(j), height(k), t)
+        end do
+      end do
+    end do
+
+    do i = 1, nlon
+      do j = 1, nlat
         call interpolate1d_set(gphiz(i, j, :))
         do k = 1, nz
+          call check_height(midhA(i, j, k))
+          call interpolate1d_linear(midhA(i, j, k), ans)
+          gphi(i, j, k) = gphi(i, j, k) - ans * dt * ratio(i, j, k)
+
           call check_height(midhB(i, j, k))
           call interpolate1d_linear(midhB(i, j, k), ans)
-     !    gphi(i, j, k) = gphi(i, j, k) + zdotB(i, j, k) * ans * (1.0d0 - ratio(i, j, k)) * dt
+          gphi(i, j, k) = gphi(i, j, k) - ans * dt * (1.0d0 - ratio(i, j, k))
         enddo
       enddo
     enddo
@@ -224,7 +243,8 @@ contains
   function calculate_ratio(a, b) result(ans)
     real(8), intent(in) :: a, b
     real(8) :: ans
-    ans = b ** 4 / (a ** 4 + b ** 4)
+    !ans = b ** 4 / (a ** 4 + b ** 4)
+    ans = b / (a + b)
   end function calculate_ratio
 
 end module direction_module
