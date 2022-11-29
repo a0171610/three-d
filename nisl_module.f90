@@ -107,7 +107,6 @@ contains
     real(8) :: ans
     real(8), allocatable :: zdot(:, :, :), midh(:, :, :), gphi1(:, :, :)
     integer(8), allocatable :: id(:, :, :)
-    real(8), parameter :: g = 9.80616d0
 
     allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz), gphi1(nlon, nlat, nz))
 

@@ -13,7 +13,7 @@ module interpolate3d_module
     real(8), dimension(:, :, :), allocatable, private :: ff, ffx, ffy, ffxy, fu, fv
     real(8), dimension(:, :, :), allocatable, private :: ffz, ffxz, ffyz, ffxyz
   
-    public :: interpolate_init, interpolate_clean, interpolate_set, interpolate_setd, interpolate_tricubic
+    public :: interpolate_init, interpolate_clean, interpolate_set, interpolate_setd, interpolate_tricubic, interpolate_trilinear
   
   contains
   
@@ -176,6 +176,24 @@ module interpolate3d_module
       end do
   
     end subroutine interpolate_setd
+
+    subroutine interpolate_trilinear(lon, lat, h, fi)
+      implicit none
+
+      real(8), intent(in) :: lon, lat, h
+      real(8), intent(out) :: fi
+
+      real(8), dimension(8) :: fs
+      integer(8) :: k
+
+      call find_stencil(lon, lat, h)
+      do k = 1, 8
+        fs(k) = ff(is(k),js(k), ks(k))
+      end do
+
+      fi = ((1.0d0-u)*(1.0d0-t)*fs(1) + (1.0d0-u)*t*fs(2) + u*t*fs(4) + u*(1.0d0-t)*fs(3)) * (1.0d0 - v)
+      fi = ((1.0d0-u)*(1.0d0-t)*fs(5) + (1.0d0-u)*t*fs(6) + u*t*fs(8) + u*(1.0d0-t)*fs(7)) * v + fi
+    end subroutine interpolate_trilinear
   
     subroutine find_stencil(lon, lat, h)
       implicit none
