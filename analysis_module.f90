@@ -98,7 +98,7 @@ contains
       enddo
     enddo
 
-    write(*,*) "l1 norm = ", sqrt(sum_g1 / sum_g2), sum_g1, sum_g2
+    write(*,*) "l1 norm = ", sum_g1 / sum_g2, sum_g1, sum_g2
 
     ! l2ノルムを求める
     sum_g1 = 0.0d0
