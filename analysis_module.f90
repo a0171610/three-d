@@ -98,7 +98,7 @@ contains
       enddo
     enddo
 
-    write(*,*) "l1 norm = ", sqrt(sum_g1 / sum_g2)
+    write(*,*) "l1 norm = ", sqrt(sum_g1 / sum_g2), sum_g1, sum_g2
 
     ! l2ノルムを求める
     sum_g1 = 0.0d0
@@ -107,13 +107,13 @@ contains
     do i = 1, nlon
       do j = 1, nlat
         do k = 1, nz
-          sum_g1 = sum_g1 + ((gphi(i, j, k) - gphi_initial(i, j, k)) * wgt(j)) ** 2
-          sum_g2 = sum_g2 + (gphi_initial(i, j, k) * wgt(j)) ** 2
+          sum_g1 = sum_g1 + ((gphi(i, j, k) - gphi_initial(i, j, k)) ** 2) * wgt(j)
+          sum_g2 = sum_g2 + (gphi_initial(i, j, k) ** 2) * wgt(j)
         enddo
       enddo
     enddo
 
-    write(*,*) "l2 norm = ", sqrt(sum_g1 / sum_g2)
+    write(*,*) "l2 norm = ", sqrt(sum_g1 / sum_g2), sum_g1, sum_g2
 
     write(*,*) 'l inf norm = ', maxval(gphi - gphi_initial)
 
