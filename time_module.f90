@@ -8,6 +8,6 @@ module time_module
   real(8), public, parameter :: deltat = 86400.0d0/dble(nstep)
   !real(8), public, parameter :: deltat = 86400.0d0/dble(nstep)
 
-  character(len=15), public :: model = "nisl", imethod = "sph"
+  character(len=15), public :: model = "direction", imethod = "sph"
   character(len=15), public :: case = "hadley"
 end module time_module

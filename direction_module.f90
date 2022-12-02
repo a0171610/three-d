@@ -78,9 +78,18 @@ contains
             end do
         end do
       endif
+      if ( i == nstep/2 ) then
+        open(10, file="log.txt")
+        do j = 1, nlat
+          do k = 1, nz
+            write(10,*) latitudes(j), height(k), gphi(nlon/2, j, k)
+          enddo
+        enddo
+        close(10)
+      endif
     end do
     close(11)
-        open(10, file="log.txt")
+    open(10, file="log.txt")
     do i = 1, nlat
       do j = 1, nz
         write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
@@ -219,6 +228,16 @@ contains
         enddo
       enddo
     enddo
+
+    do i = 1, nlon
+      do j = 1, nlat
+        do k = 1, nz
+          if ( gphi(i, j, k) < -0.05d0 ) then
+            gphi(i, j, k) = -0.05d0
+          endif
+        end do
+      end do
+    end do
 
     do k = 1, nz
       call legendre_analysis(gphi(:,:,k), sphi1(:,:,k))

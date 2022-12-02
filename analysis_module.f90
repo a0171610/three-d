@@ -85,6 +85,21 @@ contains
     end do
     write(*,*) "initial global mass sum", sum_g1, "final global mass sum", sum_g2
 
+  ! l1ノルム
+    sum_g1 = 0.0d0
+    sum_g2 = 0.0d0
+
+    do i = 1, nlon
+      do j = 1, nlat
+        do k = 1, nz
+          sum_g1 = sum_g1 + ((gphi(i, j, k) - gphi_initial(i, j, k)) * wgt(j))
+          sum_g2 = sum_g2 + (gphi_initial(i, j, k) * wgt(j))
+        enddo
+      enddo
+    enddo
+
+    write(*,*) "l1 norm = ", sqrt(sum_g1 / sum_g2)
+
     ! l2ノルムを求める
     sum_g1 = 0.0d0
     sum_g2 = 0.0d0
@@ -99,6 +114,10 @@ contains
     enddo
 
     write(*,*) "l2 norm = ", sqrt(sum_g1 / sum_g2)
+
+    write(*,*) 'l inf norm = ', maxval(gphi - gphi_initial)
+
+    write(*,*) 'nlon = ', nlon
 
   end subroutine error_log
 end module analysis_module

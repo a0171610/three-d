@@ -2,11 +2,9 @@ module grid_module
   implicit none
   private
 
-  integer(8), parameter, public :: nz = 61
-  !integer(8), parameter, public ::  ntrunc = 39, nlon = 120, nlat = 60
-  integer(8), parameter, public ::  ntrunc = 119, nlon = 360, nlat = 180
-  !integer(8), parameter, public ::  ntrunc = 159, nlon = 480, nlat = 240
-  !integer(8), parameter, public ::  ntrunc = 319, nlon = 960, nlat = 480
+  integer(8), parameter, public ::  ntrunc = 59, nlon = 180, nlat = 90, nz = 31
+  !integer(8), parameter, public ::  ntrunc = 119, nlon = 360, nlat = 180, nz = 61
+  !integer(8), parameter, public ::  ntrunc = 239, nlon = 720, nlat = 360, nz = 121
 
   complex(8), dimension(:, :, :), allocatable, public :: sphi, sphi_old
   real(8), dimension(:, :, :), allocatable, public :: gphi, gphi_initial, gu, gv, gw
