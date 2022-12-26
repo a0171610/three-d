@@ -3,6 +3,7 @@ module grid_module
   private
 
   integer(8), parameter, public ::  ntrunc = 59, nlon = 180, nlat = 90, nz = 31
+  !integer(8), parameter, public :: ntrunc = 79, nlon = 240, nlat = 120, nz = 41
   !integer(8), parameter, public ::  ntrunc = 119, nlon = 360, nlat = 180, nz = 61
   !integer(8), parameter, public ::  ntrunc = 239, nlon = 720, nlat = 360, nz = 121
 

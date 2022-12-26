@@ -233,7 +233,7 @@ contains
       do j = 1, nlat
         do k = 1, nz
           if ( gphi(i, j, k) < -0.05d0 ) then
-            gphi(i, j, k) = -0.05d0
+     !       gphi(i, j, k) = -0.05d0
           endif
         end do
       end do
