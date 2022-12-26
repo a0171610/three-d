@@ -55,7 +55,7 @@ contains
 
     integer(8) :: i, j, k
 
-    do i = 1, 10
+    do i = 1, nstep
       call update((i-0.5d0)*deltat, deltat)
       write(*, *) "step=", i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -148,6 +148,8 @@ contains
     do k = 1, nz
       call cascade_interpolate(deplon(:, :, k), deplat(:, :, k), intersect(:, :, k), gphi(:, :, k))
     end do
+
+    gphi_old = gphi
   end subroutine update
 
   function cartesian_dist(x1, y1, z1, x2, y2, z2) result(l)

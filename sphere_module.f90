@@ -86,9 +86,13 @@ module sphere_module
       implicit none
   
       real(8), intent(in) :: x1, y1, x2, y2
-      real(8) :: l
+      real(8) :: l, num
+
+      num = cos(x1-x2)*cos(y1)*cos(y2)+sin(y1)*sin(y2)
+
+      if (num > 1.0d0) num = 0.999999999999d0
   
-      l = acos(cos(x1-x2)*cos(y1)*cos(y2)+sin(y1)*sin(y2))
+      l = acos(num)
   
     end function orthodrome
   
