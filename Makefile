@@ -5,7 +5,7 @@ FC = gfortran
 FFLAGS = -O2 -I/usr/local/include -Wall -g -fcheck=array-temps,bounds,do,mem,pointer,recursion -frecursive
 LD = f90
 LDFLAGS = -L/usr/local/lib
-LDLIBS = -lfftw3
+LDLIBS = -lfftw3 -lstdlib
 
 SRC = ${wildcard *.f90} 
 OBJ = ${SRC:.f90=.o}
@@ -15,6 +15,7 @@ $(TARGET) : $(OBJ)
 	$(FC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 analysis_module.o : grid_module.o
+cascade_interpolation_module.o : search_module.o sort_module.o spline_interpolate_module.o
 time_module.o: planet_module.o
 lsqr.o : lsqrblas.o
 glatwgt_module.o : math_module.o
