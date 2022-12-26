@@ -10,6 +10,7 @@ program advection
   use direction_module, only: direction_init, direction_timeint, direction_clean
   use analysis_module, only: error_log
   use new_diagram_module, only: new_diagram_init, new_diagram_clean, new_diagram_timeint
+  use forward_semilag_module, only: semilag_forward_clean, semilag_forward_init, semilag_forward_timeint
 
   implicit none
 
@@ -36,6 +37,10 @@ program advection
       call new_diagram_init()
       call new_diagram_timeint()
       call new_diagram_clean()
+    case("forward")
+      call semilag_forward_init()
+      call semilag_forward_timeint()
+      call semilag_forward_clean()
     case default
       print *, "No matching model for", model
   end select
