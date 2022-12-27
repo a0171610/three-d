@@ -17,7 +17,6 @@ $(TARGET) : $(OBJ)
 analysis_module.o : grid_module.o
 cascade_interpolation_module.o : search_module.o sort_module.o spline_interpolate_module.o
 time_module.o: planet_module.o
-lsqr.o : lsqrblas.o
 glatwgt_module.o : math_module.o
 legendre_transform_module.o : glatwgt_module.o alf_module.o fft_module.o
 init_module.o : math_module.o planet_module.o sphere_module.o legendre_transform_module.o time_module.o
