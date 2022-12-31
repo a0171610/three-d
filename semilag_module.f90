@@ -94,7 +94,7 @@ contains
     use math_module, only: &
       pi=>math_pi, pir=>math_pir, pih=>math_pih
     use upstream3d_module, only: find_points
-    use time_module, only: case
+    use time_module, only: case, imethod
     use uv_module, only: uv_div
     use uv_hadley_module, only: uv_hadley
     use interpolate3d_module, only: interpolate_set, interpolate_setd, interpolate_tricubic
@@ -123,6 +123,39 @@ contains
 
 ! calculate spectral derivatives
 
+    select case(imethod)
+    case('sph')
+      call sph_derivative
+    case('fd')
+      call fd_derivative
+    case default
+      write(*,*) "no mathing imethod for ", imethod
+    end select
+
+    call vertical_derivative
+
+! set grids
+    call interpolate_set(gphi_old)
+    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    do j = 1, nlat
+      do i = 1, nlon
+        do k = 1, nz
+          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deph(i, j, k), gphi(i,j,k))
+        enddo
+      enddo
+    end do
+
+! spectral
+    gphi_old = gphi
+
+  end subroutine update
+
+  subroutine sph_derivative
+    use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
+        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
+    implicit none
+    integer(8) :: j, k
+
     do k = 1, nz
       call legendre_synthesis_dlon(sphi_old(:, :, k), gphix(:, :, k))
       call legendre_synthesis_dlat(sphi_old(:, :, k), gphiy(:, :, k))
@@ -133,6 +166,44 @@ contains
       gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
       gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
     end do
+  end subroutine sph_derivative
+
+  subroutine fd_derivative
+    use math_module, only: pir=>math_pir, pih=>math_pih
+    implicit none
+    integer(8) :: i, j, k
+    real(8) :: dlonr, eps, gphitmp(nlon)
+
+    do k = 1, nz
+      dlonr = 0.25d0*nlon*pir
+      gphix(1,:,k) = dlonr * (gphi_old(2,:,k) - gphi_old(nlon,:,k))
+      gphix(nlon, :, k) = dlonr * (gphi_old(1,:,k) - gphi_old(nlon-1,:,k))
+      do i=2, nlon-1
+        gphix(i,:,k) = dlonr*(gphi_old(i+1,:,k) - gphi_old(i-1,:,k))
+      end do
+    end do
+
+    do k = 1, nz
+      eps = pih-latitudes(1)
+      gphitmp = cshift(gphi_old(:,1,k),nlon/2)
+      gphiy(:,1,k) = (gphitmp-gphi_old(:,2,k))/(pih+eps-latitudes(2))
+      gphitmp = cshift(gphix(:,1,k),nlon/2)
+      gphixy(:,1,k) = (gphitmp-gphix(:,2,k))/(pih+eps-latitudes(2))
+      gphitmp = cshift(gphi_old(:,nlat,k),nlon/2)
+      gphiy(:,nlat,k) = (gphitmp-gphi_old(:,nlat-1,k))/(-pih-eps-latitudes(nlat-1))
+      gphitmp = cshift(gphix(:,nlat,k),nlon/2)
+      gphixy(:,nlat,k) = (gphitmp-gphix(:,nlat-1,k))/(-pih-eps-latitudes(nlat-1))
+      do j=2, nlat-1
+        gphiy(:,j,k) = (gphi_old(:,j+1,k)-gphi_old(:,j-1,k))/(latitudes(j+1)-latitudes(j-1))
+        gphixy(:,j,k) = (gphix(:,j+1,k)-gphix(:,j-1,k))/(latitudes(j+1)-latitudes(j-1))
+      end do
+    end do
+  end subroutine fd_derivative
+
+  subroutine vertical_derivative
+    implicit none
+
+    integer(8) :: k
 
     do k = 2, nz-1
       gphiz(:, :, k) = (gphi(:, :, k + 1) - gphi(:, :, k - 1)) / (height(k+1) - height(k-1))
@@ -150,21 +221,6 @@ contains
     gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (height(nz) - height(nz-1))
     gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (height(nz) - height(nz-1))
     gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (height(nz) - height(nz-1))
-
-! set grids
-    call interpolate_set(gphi_old)
-    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
-    do j = 1, nlat
-      do i = 1, nlon
-        do k = 1, nz
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), deph(i, j, k), gphi(i,j,k))
-        enddo
-      enddo
-    end do
-
-! spectral
-    gphi_old = gphi
-
-  end subroutine update
+  end subroutine vertical_derivative
 
 end module semilag_module
