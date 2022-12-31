@@ -17,12 +17,12 @@ contains
 
   subroutine nisl_init()
     use time_module, only: deltat
-    use interpolate3d_module, only: interpolate_init
+    use interpolate2d_module, only: interpolate2d_init
     use interpolate1d_module, only: interpolate1d_init
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
-    integer(8) :: i, j, k
+    integer(8) :: i, j
 
     allocate(sphi1(0:ntrunc, 0:ntrunc, nz),gphi_old(nlon, nlat, nz))
     allocate(gphim(nlon, nlat, nz),dgphi(nlon, nlat, nz),dgphim(nlon, nlat, nz))
@@ -32,7 +32,7 @@ contains
     allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
     allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
 
-    call interpolate_init(gphi)
+    call interpolate2d_init(gphi)
     call interpolate1d_init(gphi(1,1,:))
 
     gphi_old = gphi
@@ -48,12 +48,12 @@ contains
   end subroutine nisl_init
 
   subroutine nisl_clean()
-    use interpolate3d_module, only: interpolate_clean
+    use interpolate2d_module, only: interpolate2d_clean
     implicit none
 
     deallocate(sphi1,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
       midlon,midlat,deplon,deplat)
-    call interpolate_clean()
+    call interpolate2d_clean()
 
   end subroutine nisl_clean
 
@@ -93,7 +93,7 @@ contains
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
-    use interpolate3d_module, only: interpolate_set, interpolate_setd, interpolate_tricubic
+    use interpolate2d_module, only: interpolate2d_set, interpolate2d_setd, interpolate2d_bicubic
     use interpolate1d_module, only: interpolate1d_set, interpolate1d_linear
 
     implicit none
@@ -137,16 +137,14 @@ contains
 
     call fd_derivative
 
-    gphiz = 0.0d0; gphixz = 0.0d0; gphiyz = 0.0d0; gphixyz = 0.0d0
-
     ! set grids
-    call interpolate_set(gphi_old)
-    call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
+    call interpolate2d_set(gphi_old)
+    call interpolate2d_setd(gphix, gphiy, gphixy)
     do j = 1, nlat
       do i = 1, nlon
         do k = 1, nz
           call check_height(height(id(i, j, k)))
-          call interpolate_tricubic(deplon(i,j,k), deplat(i,j,k), height(id(i, j, k)), gphi(i,j,k))
+          call interpolate2d_bicubic(deplon(i,j,k), deplat(i,j,k), height(id(i, j, k)), gphi(i,j,k))
         enddo
       enddo
     end do
@@ -242,28 +240,5 @@ contains
       end do
     end do
   end subroutine fd_derivative
-
-  subroutine vertical_derivative
-    implicit none
-
-    integer(8) :: k
-
-    do k = 2, nz-1
-      gphiz(:, :, k) = (gphi_old(:, :, k + 1) - gphi_old(:, :, k - 1)) / (height(k+1) - height(k-1))
-      gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (height(k+1) - height(k-1))
-      gphiyz(:, :, k) = (gphiy(:, :, k + 1) - gphiy(:, :, k - 1)) / (height(k+1) - height(k-1))
-      gphixyz(:, :, k) = (gphixy(:, :, k + 1) - gphixy(:, :, k - 1)) / (height(k+1) - height(k-1))
-    end do
-
-    gphiz(:, :, 1) = (gphi_old(:, :, 2) - gphi_old(:, :, 1)) / (height(2) - height(1))
-    gphixz(:, :, 1) = (gphix(:, :, 2) - gphix(:, :, 1)) / (height(2) - height(1))
-    gphiyz(:, :, 1) = (gphiy(:, :, 2) - gphiy(:, :, 1)) / (height(2) - height(1))
-    gphixyz(:, :, 1) = (gphixy(:, :, 2) - gphixy(:, :, 1)) / (height(2) - height(1))
-
-    gphiz(:, :, nz) = (gphi_old(:, :, nz) - gphi_old(:, :, nz - 1)) / (height(nz) - height(nz-1))
-    gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (height(nz) - height(nz-1))
-    gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (height(nz) - height(nz-1))
-    gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (height(nz) - height(nz-1))
-  end subroutine vertical_derivative
 
 end module nisl_module
