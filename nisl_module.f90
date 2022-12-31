@@ -35,11 +35,7 @@ contains
     call interpolate_init(gphi)
     call interpolate1d_init(gphi(1,1,:))
 
-    do k = 1, nz
-      call legendre_synthesis(sphi_old(:,:,k), gphi_old(:,:,k))
-    enddo
-    gphi(:, :, :) = gphi_old(:, :, :)
-
+    gphi_old = gphi
 
     open(11, file="animation.txt")
     do i = 1, nlat
@@ -139,16 +135,7 @@ contains
 
     ! calculate spectral derivatives
 
-    do k = 1, nz
-      call legendre_synthesis_dlon(sphi_old(:, :, k), gphix(:, :, k))
-      call legendre_synthesis_dlat(sphi_old(:, :, k), gphiy(:, :, k))
-      call legendre_synthesis_dlonlat(sphi_old(:, :, k), gphixy(:, :, k))
-    enddo
-
-    do j = 1, nlat
-      gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
-      gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
-    end do
+    call fd_derivative
 
     gphiz = 0.0d0; gphixz = 0.0d0; gphiyz = 0.0d0; gphixyz = 0.0d0
 
@@ -223,5 +210,60 @@ contains
       h = 12000.d0 - eps
     endif
   end subroutine check_height
+
+  subroutine fd_derivative
+    use math_module, only: pir=>math_pir, pih=>math_pih
+    implicit none
+    integer(8) :: i, j, k
+    real(8) :: dlonr, eps, gphitmp(nlon)
+
+    do k = 1, nz
+      dlonr = 0.25d0*nlon*pir
+      gphix(1,:,k) = dlonr * (gphi_old(2,:,k) - gphi_old(nlon,:,k))
+      gphix(nlon, :, k) = dlonr * (gphi_old(1,:,k) - gphi_old(nlon-1,:,k))
+      do i=2, nlon-1
+        gphix(i,:,k) = dlonr*(gphi_old(i+1,:,k) - gphi_old(i-1,:,k))
+      end do
+    end do
+
+    do k = 1, nz
+      eps = pih-latitudes(1)
+      gphitmp = cshift(gphi_old(:,1,k),nlon/2)
+      gphiy(:,1,k) = (gphitmp-gphi_old(:,2,k))/(pih+eps-latitudes(2))
+      gphitmp = cshift(gphix(:,1,k),nlon/2)
+      gphixy(:,1,k) = (gphitmp-gphix(:,2,k))/(pih+eps-latitudes(2))
+      gphitmp = cshift(gphi_old(:,nlat,k),nlon/2)
+      gphiy(:,nlat,k) = (gphitmp-gphi_old(:,nlat-1,k))/(-pih-eps-latitudes(nlat-1))
+      gphitmp = cshift(gphix(:,nlat,k),nlon/2)
+      gphixy(:,nlat,k) = (gphitmp-gphix(:,nlat-1,k))/(-pih-eps-latitudes(nlat-1))
+      do j=2, nlat-1
+        gphiy(:,j,k) = (gphi_old(:,j+1,k)-gphi_old(:,j-1,k))/(latitudes(j+1)-latitudes(j-1))
+        gphixy(:,j,k) = (gphix(:,j+1,k)-gphix(:,j-1,k))/(latitudes(j+1)-latitudes(j-1))
+      end do
+    end do
+  end subroutine fd_derivative
+
+  subroutine vertical_derivative
+    implicit none
+
+    integer(8) :: k
+
+    do k = 2, nz-1
+      gphiz(:, :, k) = (gphi_old(:, :, k + 1) - gphi_old(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphixz(:, :, k) = (gphix(:, :, k + 1) - gphix(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphiyz(:, :, k) = (gphiy(:, :, k + 1) - gphiy(:, :, k - 1)) / (height(k+1) - height(k-1))
+      gphixyz(:, :, k) = (gphixy(:, :, k + 1) - gphixy(:, :, k - 1)) / (height(k+1) - height(k-1))
+    end do
+
+    gphiz(:, :, 1) = (gphi_old(:, :, 2) - gphi_old(:, :, 1)) / (height(2) - height(1))
+    gphixz(:, :, 1) = (gphix(:, :, 2) - gphix(:, :, 1)) / (height(2) - height(1))
+    gphiyz(:, :, 1) = (gphiy(:, :, 2) - gphiy(:, :, 1)) / (height(2) - height(1))
+    gphixyz(:, :, 1) = (gphixy(:, :, 2) - gphixy(:, :, 1)) / (height(2) - height(1))
+
+    gphiz(:, :, nz) = (gphi_old(:, :, nz) - gphi_old(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphixz(:, :, nz) = (gphix(:, :, nz) - gphix(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphiyz(:, :, nz) = (gphiy(:, :, nz) - gphiy(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    gphixyz(:, :, nz) = (gphixy(:, :, nz) - gphixy(:, :, nz - 1)) / (height(nz) - height(nz-1))
+  end subroutine vertical_derivative
 
 end module nisl_module

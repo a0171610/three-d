@@ -89,9 +89,9 @@ contains
     implicit none
 
     real(8), intent(in) :: t, dt
-    real(8) :: target_h, h1, h2, h_dist(nz), h_loc(nz), f(0:nz-1), ansf(nz), h_dist0(0:nz-1)
+    real(8) :: target_h, h1, h2, h_dist(nz), h_loc(nz), f(0:nz-1), h_dist0(0:nz-1)
 
-    integer(8) :: i, j, k, m, n, id
+    integer(8) :: i, j, k, id
 
     select case(case)
       case('hadley')
