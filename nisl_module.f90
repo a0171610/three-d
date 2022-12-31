@@ -1,14 +1,13 @@
 module nisl_module
 
   use grid_module, only: nlon, nlat, ntrunc, nz, lon, coslatr, height, dh, &
-    gu, gv, gw, gphi, gphi_initial, sphi_old, sphi, longitudes=>lon, latitudes=>lat, wgt
+    gu, gv, gw, gphi, gphi_initial, longitudes=>lon, latitudes=>lat, wgt
   private
   
   real(8), dimension(:, :, :), allocatable, private :: &
     gphi_old, dgphi, dgphim, gphim, gphix, gphiy, gphixy, &
     midlon, midlat, deplon, deplat, gum, gvm, depheight, &
-    gphiz, gphixz, gphiyz, gphixyz
-  complex(8), dimension(:, :, :), allocatable, private :: sphi1
+    gphiz, gphi1
 
   private :: update
   public :: nisl_init, nisl_timeint, nisl_clean
@@ -24,18 +23,19 @@ contains
 
     integer(8) :: i, j
 
-    allocate(sphi1(0:ntrunc, 0:ntrunc, nz),gphi_old(nlon, nlat, nz))
+    allocate(gphi_old(nlon, nlat, nz), gphi1(nlon, nlat, nz))
     allocate(gphim(nlon, nlat, nz),dgphi(nlon, nlat, nz),dgphim(nlon, nlat, nz))
     allocate(midlon(nlon, nlat, nz), midlat(nlon, nlat, nz))
     allocate(deplon(nlon, nlat, nz), deplat(nlon, nlat, nz))
     allocate(gum(nlon, nlat, nz), gvm(nlon, nlat, nz), depheight(nlon, nlat, nz))
     allocate(gphix(nlon, nlat, nz), gphiy(nlon, nlat, nz), gphixy(nlon, nlat, nz))
-    allocate(gphiz(nlon, nlat, nz), gphixz(nlon, nlat, nz), gphiyz(nlon, nlat, nz), gphixyz(nlon, nlat, nz))
+    allocate(gphiz(nlon, nlat, nz))
 
     call interpolate2d_init(gphi)
     call interpolate1d_init(gphi(1,1,:))
 
     gphi_old = gphi
+    gphi1 = gphi
 
     open(11, file="animation.txt")
     do i = 1, nlat
@@ -51,7 +51,7 @@ contains
     use interpolate2d_module, only: interpolate2d_clean
     implicit none
 
-    deallocate(sphi1,gphi_old,gphim,dgphi,dgphim,gum,gvm, &
+    deallocate(gphi_old,gphim,dgphi,dgphim,gum,gvm, &
       midlon,midlat,deplon,deplat)
     call interpolate2d_clean()
 
@@ -98,13 +98,13 @@ contains
 
     implicit none
 
-    integer(8) :: i, j, k, m
+    integer(8) :: i, j, k
     real(8), intent(in) :: t, dt
     real(8) :: ans
-    real(8), allocatable :: zdot(:, :, :), midh(:, :, :), gphi1(:, :, :)
+    real(8), allocatable :: zdot(:, :, :), midh(:, :, :)
     integer(8), allocatable :: id(:, :, :)
 
-    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz), gphi1(nlon, nlat, nz))
+    allocate(zdot(nlon, nlat, nz), id(nlon, nlat, nz), midh(nlon, nlat, nz))
 
     select case(case)
       case('hadley')
@@ -129,12 +129,6 @@ contains
       enddo
     enddo
 
-    do k = 1, nz
-      call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
-    enddo
-
-    ! calculate spectral derivatives
-
     call fd_derivative
 
     ! set grids
@@ -148,10 +142,6 @@ contains
         enddo
       enddo
     end do
-
-    do k = 1, nz
-      call legendre_synthesis(sphi(:, :, k), gphi1(:, :, k))
-    enddo
 
     do k = 2, nz-1
       gphiz(:, :, k) = (gphi1(:, :, k + 1) - gphi1(:, :, k - 1)) / (height(k+1) - height(k-1))
@@ -189,13 +179,8 @@ contains
       enddo
     enddo
 
-    do k = 1, nz
-      call legendre_analysis(gphi(:,:,k), sphi1(:,:,k))
-      do m = 0, ntrunc
-        sphi_old(m : ntrunc, m, k) = sphi(m : ntrunc, m, k)
-        sphi(m : ntrunc, m, k) = sphi1(m : ntrunc, m, k)
-      enddo
-    enddo
+    gphi_old(:,:,:) = gphi1(:,:,:)
+    gphi1(:,:,:) = gphi(:,:,:)
 
   end subroutine update
 
