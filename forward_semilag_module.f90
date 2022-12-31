@@ -83,13 +83,13 @@ contains
     use time_module, only: case
     use uv_module, only: uv_div
     use uv_hadley_module, only: uv_hadley
-    use spline_interpolate_module, only: interpolate_spline_1index
+    use spline_interpolate_module, only: interpolate_spline
     use search_module, only: search_bisection
     use cascade_interpolation_module, only: cascade_interpolate
     implicit none
 
     real(8), intent(in) :: t, dt
-    real(8) :: target_h, h1, h2, h_dist(nz), h_loc(nz), f(nz)
+    real(8) :: target_h, h1, h2, h_dist(nz), h_loc(nz), f(0:nz-1), ansf(nz), h_dist0(0:nz-1)
 
     integer(8) :: i, j, k, m, n, id
 
@@ -141,7 +141,8 @@ contains
           endif
         end do
         f(:) = gphi_old(i, j, :)
-        call interpolate_spline_1index(nz, h_dist, f, h_loc, intersect(i, j, :))
+        h_dist0 = h_dist
+        call interpolate_spline(nz, h_dist0, f, h_loc, intersect(i, j, :))
       end do
     end do
 
