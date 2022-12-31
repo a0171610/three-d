@@ -104,7 +104,7 @@ contains
 
     real(8), intent(in) :: t, dt
 
-    integer(8) :: i, j, k, m, n
+    integer(8) :: i, j, k
 
     select case(case)
       case('hadley')
@@ -118,7 +118,7 @@ contains
 
     call find_points(gu, gv, gw, t, 0.5d0*dt, midlon, midlat, deplon, deplat, deph)
     do k = 1, nz
-      call legendre_synthesis(sphi_old(:, :, k), gphi_old(:, :, k))
+      call legendre_analysis(gphi_old(:, :, k), sphi_old(:, :, k))
     enddo
 
 ! calculate spectral derivatives
@@ -163,16 +163,7 @@ contains
     end do
 
 ! spectral
-    do k = 1, nz
-      call legendre_analysis(gphi(:, :, k), sphi(:, :, k))      
-    end do
-    do n = 1, ntrunc
-      do m = 0, n
-        do k = 1, nz
-          sphi_old(n, m, k) = sphi(n, m, k)
-        end do
-      enddo
-    end do
+    gphi_old = gphi
 
   end subroutine update
 
