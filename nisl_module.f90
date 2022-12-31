@@ -17,7 +17,6 @@ contains
   subroutine nisl_init()
     use time_module, only: deltat
     use interpolate2d_module, only: interpolate2d_init
-    use interpolate1d_module, only: interpolate1d_init
     use legendre_transform_module, only: legendre_synthesis
     implicit none
 
@@ -32,7 +31,6 @@ contains
     allocate(gphiz(nlon, nlat, nz))
 
     call interpolate2d_init(gphi)
-    call interpolate1d_init(gphi(1,1,:))
 
     gphi_old = gphi
     gphi1 = gphi
@@ -94,13 +92,13 @@ contains
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
     use interpolate2d_module, only: interpolate2d_set, interpolate2d_setd, interpolate2d_bicubic
-    use interpolate1d_module, only: interpolate1d_set, interpolate1d_linear
+    use spline_interpolate_module, only: interpolate_spline_1index
 
     implicit none
 
     integer(8) :: i, j, k
     real(8), intent(in) :: t, dt
-    real(8) :: ans
+    real(8) :: ansf(nz), f(nz)
     real(8), allocatable :: zdot(:, :, :), midh(:, :, :)
     integer(8), allocatable :: id(:, :, :)
 
@@ -151,11 +149,10 @@ contains
 
     do i = 1, nlon
       do j = 1, nlat
-        call interpolate1d_set(gphiz(i, j, :))
+        f(:) = gphiz(i, j, :)
+        call interpolate_spline_1index(nz, height, f, midh(i,j,:), ansf)
         do k = 1, nz
-          call check_height(midh(i, j, k))
-          call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) + (height(k) - height(id(i, j, k))) * ans
+          gphi(i, j, k) = gphi(i, j, k) + (height(k) - height(id(i, j, k))) * ansf(k)
         enddo
       enddo
     enddo
@@ -170,11 +167,11 @@ contains
 
     do i = 1, nlon
       do j = 1, nlat
-        call interpolate1d_set(gphiz(i, j, :))
+        f = gphiz(i, j, :)
+        call interpolate_spline_1index(nz, height, f, midh(i,j,:), ansf)
         do k = 1, nz
           call check_height(midh(i, j, k))
-          call interpolate1d_linear(midh(i, j, k), ans)
-          gphi(i, j, k) = gphi(i, j, k) - ans * dt
+          gphi(i, j, k) = gphi(i, j, k) - ansf(k) * dt
         enddo
       enddo
     enddo

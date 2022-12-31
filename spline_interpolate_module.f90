@@ -16,7 +16,7 @@ module spline_interpolate_module
       x0(:) = x(:)
       f0(:) = f(:)
 
-      call interpolate_spline(n, x0, f0, ansx, ansf)
+      call interpolate_spline(n-1, x0, f0, ansx, ansf)
     end subroutine interpolate_spline_1index
   
     subroutine interpolate_spline(n, x, f, ansx, ansf)
