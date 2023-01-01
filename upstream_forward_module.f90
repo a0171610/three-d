@@ -53,8 +53,8 @@ contains
           lon_tmp = modulo(atan2(y_tmp, x_tmp)+pi2, pi2)
           lat_tmp = asin(z_tmp / sqrt(x_tmp**2 + y_tmp**2 + z_tmp**2))
           h_tmp = h + k1_h / 3.0d0
-          k2_u = calc_u(lon_tmp)
-          k2_v = calc_v(t + dt/3.0d0, lon_tmp, lat_tmp)
+          k2_u = calc_u(lat_tmp)
+          k2_v = calc_v(lat_tmp, h_tmp, t + dt / 3.0d0)
           k2_w = calc_w(lat_tmp, h_tmp, t + dt / 3.0d0)
           call uv2xyz(k2_u, k2_v, lon_tmp, lat_tmp, k2_xdot, k2_ydot, k2_zdot)
           k2_x = dt * k2_xdot
@@ -68,7 +68,7 @@ contains
           lon_tmp = modulo(atan2(y_tmp, x_tmp)+pi2, pi2)
           lat_tmp = asin(z_tmp / sqrt(x_tmp**2 + y_tmp**2 + z_tmp**2))
           h_tmp = h + k2_h * 2.0d0 / 3.0d0
-          k3_u = calc_u(lon_tmp)
+          k3_u = calc_u(lat_tmp)
           k3_v = calc_v(lat_tmp, h_tmp, t + 2.0d0*dt/3.0d0)
           k3_w = calc_w(lat_tmp, h_tmp, t + 2.0d0*dt/3.0d0)
           call uv2xyz(k3_u, k3_v, lon_tmp, lat_tmp, k3_xdot, k3_ydot, k3_zdot)
