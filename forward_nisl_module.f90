@@ -70,7 +70,7 @@ contains
 
     call update(0.5d0*deltat, deltat)
     write(*, *) 'step = 0 ', "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
-    do i = 2, 3
+    do i = 2, nstep
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
       if ( mod(i, hstep) == 0 ) then
@@ -83,9 +83,14 @@ contains
     end do
     close(11)
     open(10, file="log.txt")
-    do i = 1, nlat
-      do j = 1, nz
-        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+    !do i = 1, nlat
+    !  do j = 1, nz
+    !    write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+    !  enddo
+    !enddo
+    do i = 1, nlon
+      do j = 1, nlat
+        write(10, *) lon(i), latitudes(j), gphi(i, j, 25)
       enddo
     enddo
     close(10)
@@ -94,7 +99,6 @@ contains
 
   subroutine update(t, dt)
     use uv_module, only: uv_div
-    use uv_hadley_module, only: uv_hadley, calc_w
     use upstream_forward_module, only: find_forward_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -185,7 +189,9 @@ contains
   subroutine mid_points(t, dt)
     use sphere_module, only: lonlat2xyz, xyz2uv
     use math_module, only: pi2=>math_pi2
-    use uv_hadley_module, only: calc_u, calc_v, calc_w
+    use time_module, only: case
+    use uv_hadley_module, only: calc_hadleyu=>calc_u, calc_hadleyv=>calc_v, calc_hadleyw=>calc_w
+    use uv_module, only: calc_ua, calc_ud, calc_va, calc_w
     implicit none
     real(8), intent(in) :: t, dt
     integer(8) :: i, j, k
@@ -212,9 +218,17 @@ contains
           call xyz2uv(xdot, ydot, zdot, midlon(i,j,k), midlat(i,j,k), u1, v1)  !Richie1987式(49)
           w1 = (height(k) - height(r(i, j, k))) / dt
 
-          u2 = calc_u(midlat(i,j,k))
-          v2 = calc_v(midlat(i,j,k), midh(i,j,k), t)
-          w2 = calc_w(midlat(i,j,k), midh(i,j,k), t)
+          select case(case)
+          case('hadley')
+            u2 = calc_hadleyu(midlat(i,j,k))
+            v2 = calc_hadleyv(midlat(i,j,k), midh(i,j,k), t)
+            w2 = calc_hadleyw(midlat(i,j,k), midh(i,j,k), t)
+          case('div')
+            u2 = calc_ua(midlon(i,j,k), midlat(i,j,k), t) &
+              + calc_ud(midlon(i,j,k), midlat(i,j,k), midh(i,j,k), t)
+            v2 = calc_va(midlon(i,j,k), midlat(i,j,k), t)
+            w2 = calc_w(midlon(i,j,k), midlat(i,j,k), midh(i,j,k), t)
+          end select
           gum(i, j, k) = u1 - u2
           gvm(i, j, k) = v1 - v2
           gwm(i, j, k) = w1 - w2
@@ -312,8 +326,9 @@ contains
   subroutine find_points
     use math_module, only: pir=>math_pir, pi=>math_pi
     use interpolate_module, only: find_stencil_
+    use grid_module, only: pole_regrid
     implicit none
-    integer(8) :: i, j, k, i1, j1, k1
+    integer(8) :: i, j, k, i1, j1, k1, it, jt
     real(8) :: dlonr
     integer(8) :: p1, q1, r1
     real(8), allocatable :: use_dist(:,:,:)
@@ -349,15 +364,17 @@ contains
         do k = 1, nz
           if (p(i, j, k) /= -100) cycle
           min_dist = 1.0d9
-          do i1 = max(i-1, 1), min(i+1, nlon)
-            do j1 = max(j-1, 1), min(j+1, nlat)
+          do i1 = i-2, i+2
+            do j1 = j-2, j+2
               do k1 = max(k-1,1), min(k+1, nz)
+                it = i1; jt = j1
+                call pole_regrid(it, jt)
                 tmp_dist = sphere_dist(lon(i), latitudes(j), height(k), &
-                  deplon(i1,j1,k1), deplat(i1,j1,k1), depheight(i1,j1,k1))
+                  deplon(it,jt,k1), deplat(it,jt,k1), depheight(it,jt,k1))
                   if (min_dist > tmp_dist) then
                     min_dist = tmp_dist
-                    p(i, j, k) = i1
-                    q(i, j, k) = j1
+                    p(i, j, k) = it
+                    q(i, j, k) = jt
                     r(i, j, k) = k1
                   endif
               enddo
