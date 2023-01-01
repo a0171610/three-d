@@ -130,8 +130,6 @@ module upstream3d_module
               deph(i, j, k) = hs - eps
             endif
 
-           ! write(*, *) height(k), deph(i, j, k)
-
           enddo
         end do
       end do

@@ -41,7 +41,6 @@ contains
           write(11,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       end do        
     end do
-    call update(0.5d0*deltat, deltat)
 
   end subroutine nisl_init
 
@@ -61,7 +60,8 @@ contains
     implicit none
 
     integer(8) :: i, j, k
-
+    call update(0.5d0*deltat, deltat)
+    write(*, *) 'step = ', 0, "maxval = ", maxval(gphi(:,:,25)), 'minval = ', minval(gphi(:,:,25))
     do i = 2, nstep
       call update((i-1)*deltat, 2.0d0*deltat)
       write(*, *) 'step = ', i, "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
@@ -80,6 +80,11 @@ contains
         write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       enddo
     enddo
+    !do i = 1, nlon
+    !  do j = 1, nlat
+    !    write(10,*) lon(i), latitudes(j), gphi(i, j, 25)
+    !  enddo
+    !enddo
     close(10)
     
   end subroutine nisl_timeint
@@ -87,7 +92,8 @@ contains
   subroutine update(t, dt)
     use uv_module, only: uv_div
     use time_module, only: case
-    use uv_hadley_module, only: uv_hadley, calc_w
+    use uv_hadley_module, only: uv_hadley, calc_hadleyw=>calc_w
+    use uv_module, only: calc_w
     use upstream3d_module, only: find_points
     use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
         legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
@@ -132,7 +138,7 @@ contains
       do i = 1, nlon
         do k = 1, nz
           call check_height(height(id(i, j, k)))
-          call interpolate2d_bicubic(deplon(i,j,k), deplat(i,j,k), height(id(i, j, k)), gphi(i,j,k))
+          call interpolate2d_bicubic(deplon(i,j,k), deplat(i,j,k), depheight(i,j,k), gphi(i,j,k))
         enddo
       enddo
     end do
@@ -159,7 +165,14 @@ contains
     do i = 1, nlon
       do j = 1, nlat
         do k = 1, nz
-          gphiz(i, j, k) = gphiz(i, j, k) * calc_w(latitudes(j), height(k), t)
+          select case(case)
+          case('hadley')
+            gphiz(i, j, k) = gphiz(i, j, k) * calc_hadleyw(latitudes(j), height(k), t)
+          case('div')
+            gphiz(i, j, k) = gphiz(i, j, k) * calc_w(lon(i), latitudes(j), height(k), t)
+          case default
+            print *, "no matching model"
+          end select
         end do
       end do
     end do
