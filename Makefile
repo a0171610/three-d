@@ -29,6 +29,7 @@ euler_module.o : planet_module.o grid_module.o time_module.o legendre_transform_
 semilag_module.o : grid_module.o time_module.o legendre_transform_module.o upstream3d_module.o interpolate3d_module.o
 forward_semilag_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_forward_module.o interpolate3d_module.o
 nisl_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o interpolate1d_module.o interpolate3d_module.o upstream3d_module.o
+forward_nisl_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o interpolate1d_module.o interpolate3d_module.o upstream3d_module.o interpolate2d_module.o upstream_forward_module.o
 direction_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o interpolate1d_module.o interpolate3d_module.o upstream3d_module.o
 main.o : grid_module.o time_module.o semilag_module.o analysis_module.o new_diagram_module.o nisl_module.o
 new_diagram_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o interpolate1d_module.o interpolate3d_module.o upstream3d_module.o interpolate_module.o

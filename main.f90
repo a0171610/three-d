@@ -11,6 +11,7 @@ program advection
   use analysis_module, only: error_log
   use new_diagram_module, only: new_diagram_init, new_diagram_clean, new_diagram_timeint
   use forward_semilag_module, only: semilag_forward_clean, semilag_forward_init, semilag_forward_timeint
+  use forward_nisl_module, only: forward_nisl_clean, forward_nisl_init, forward_nisl_timeint
 
   implicit none
 
@@ -41,6 +42,10 @@ program advection
       call semilag_forward_init()
       call semilag_forward_timeint()
       call semilag_forward_clean()
+    case("forward_nisl")
+      call forward_nisl_init()
+      call forward_nisl_timeint()
+      call forward_nisl_clean()
     case default
       print *, "No matching model for", model
   end select
