@@ -35,7 +35,7 @@ main.o : grid_module.o time_module.o semilag_module.o analysis_module.o new_diag
 new_diagram_module.o : grid_module.o time_module.o legendre_transform_module.o upstream_module.o sphere_module.o interpolate1d_module.o interpolate3d_module.o upstream3d_module.o interpolate_module.o
 
 clean :
-	rm -f *.o *.mod $(TARGET) *.dat $(TARGET).log *.txt
+	rm -f *.o *.mod $(TARGET) *.dat $(TARGET).log
 
 .f90.o :
 	$(FC) $(FFLAGS) $< -c

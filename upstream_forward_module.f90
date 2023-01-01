@@ -1,8 +1,10 @@
 module upstream_forward_module
   use grid_module, only: longitudes=>lon, latitudes=>lat, height
-  use uv_hadley_module, only: calc_u, calc_v, calc_w
+  use uv_hadley_module, only: hadley_u=>calc_u, hadley_v=>calc_v, hadley_w=>calc_w
+  use uv_module, only: calc_ua, calc_ud, calc_va, calc_w
   use sphere_module, only: lonlat2xyz, uv2xyz
   use math_module, only: pi2=>math_pi2
+  use time_module, only: case
   implicit none
 
 contains
@@ -38,9 +40,19 @@ contains
 
           call lonlat2xyz(lon, lat, xg, yg, zg)
 
-          k1_u = calc_u(lat)
-          k1_v = calc_v(lat, h, t)
-          k1_w = calc_w(lat, h, t)
+          select case(case)
+          case ('hadley')
+            k1_u = hadley_u(lat)
+            k1_v = hadley_v(lat, h, t)
+            k1_w = hadley_w(lat, h, t)
+          case ('div')
+            k1_u = calc_ua(lon, lat,t) + calc_ud(lon, lat, h, t)
+            k1_v = calc_va(lon, lat, t)
+            k1_w = calc_w(lon, lat, h, t)
+          case default
+            print *, 'no matchig velocity'
+          end select
+
           call uv2xyz(k1_u, k1_v, lon, lat, k1_xdot, k1_ydot, k1_zdot)
           k1_x = dt * k1_xdot
           k1_y = dt * k1_ydot
@@ -53,9 +65,18 @@ contains
           lon_tmp = modulo(atan2(y_tmp, x_tmp)+pi2, pi2)
           lat_tmp = asin(z_tmp / sqrt(x_tmp**2 + y_tmp**2 + z_tmp**2))
           h_tmp = h + k1_h / 3.0d0
-          k2_u = calc_u(lat_tmp)
-          k2_v = calc_v(lat_tmp, h_tmp, t + dt / 3.0d0)
-          k2_w = calc_w(lat_tmp, h_tmp, t + dt / 3.0d0)
+          select case(case)
+          case('hadley')
+            k2_u = hadley_u(lat_tmp)
+            k2_v = hadley_v(lat_tmp, h_tmp, t + dt / 3.0d0)
+            k2_w = hadley_w(lat_tmp, h_tmp, t + dt / 3.0d0)
+          case('div')
+            k2_u = calc_ua(lon_tmp, lat_tmp,t + dt/3.0d0) + calc_ud(lon_tmp, lat_tmp, h_tmp, t+dt/3.0d0)
+            k2_v = calc_va(lon_tmp, lat_tmp, t + dt/3.0d0)
+            k2_w = calc_w(lon_tmp, lat_tmp, h_tmp, t + dt/3.0d0)
+          case default
+            print *, 'no matchig velocity'
+          end select
           call uv2xyz(k2_u, k2_v, lon_tmp, lat_tmp, k2_xdot, k2_ydot, k2_zdot)
           k2_x = dt * k2_xdot
           k2_y = dt * k2_ydot
@@ -68,9 +89,18 @@ contains
           lon_tmp = modulo(atan2(y_tmp, x_tmp)+pi2, pi2)
           lat_tmp = asin(z_tmp / sqrt(x_tmp**2 + y_tmp**2 + z_tmp**2))
           h_tmp = h + k2_h * 2.0d0 / 3.0d0
-          k3_u = calc_u(lat_tmp)
-          k3_v = calc_v(lat_tmp, h_tmp, t + 2.0d0*dt/3.0d0)
-          k3_w = calc_w(lat_tmp, h_tmp, t + 2.0d0*dt/3.0d0)
+          select case(case)
+          case('hadley')
+            k3_u = hadley_u(lat_tmp)
+            k3_v = hadley_v(lat_tmp, h_tmp, t + dt*2.0d0 / 3.0d0)
+            k3_w = hadley_w(lat_tmp, h_tmp, t + dt*2.0d0 / 3.0d0)
+          case('div')
+            k3_u = calc_ua(lon_tmp, lat_tmp,t + dt*2.0d0/3.0d0) + calc_ud(lon_tmp, lat_tmp, h_tmp, t+dt*2.d0/3.0d0)
+            k3_v = calc_va(lon_tmp, lat_tmp, t + dt*2.0d0/3.0d0)
+            k3_w = calc_w(lon_tmp, lat_tmp, h_tmp, t + dt*2.0d0/3.0d0)
+          case default
+            print *, 'no matchig velocity'
+          end select
           call uv2xyz(k3_u, k3_v, lon_tmp, lat_tmp, k3_xdot, k3_ydot, k3_zdot)
           k3_x = dt * k3_xdot
           k3_y = dt * k3_ydot

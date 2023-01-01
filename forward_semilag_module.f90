@@ -70,7 +70,12 @@ contains
     open(10, file="log.txt")
     do i = 1, nlat
       do j = 1, nz
-        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+      !  write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+      enddo
+    enddo
+    do i = 1, nlon
+      do j = 1, nlat
+        write(10, *) lon(i), latitudes(j), gphi(i, j, 25)
       enddo
     enddo
     close(10)
@@ -80,9 +85,6 @@ contains
     use math_module, only: &
       pi=>math_pi, pir=>math_pir, pih=>math_pih
     use upstream_forward_module, only: find_forward_points
-    use time_module, only: case
-    use uv_module, only: uv_div
-    use uv_hadley_module, only: uv_hadley
     use spline_interpolate_module, only: interpolate_spline_1index
     use search_module, only: search_bisection
     use cascade_interpolation_module, only: cascade_interpolate
@@ -92,16 +94,6 @@ contains
     real(8) :: target_h, h1, h2, h_dist(nz), h_loc(nz), f(nz)
 
     integer(8) :: i, j, k, id
-
-    select case(case)
-      case('hadley')
-        call uv_hadley(t, lon, latitudes, height, gu, gv, gw)
-      case('div')
-        call uv_div(t, lon, latitudes, height, gu, gv, gw)
-      case default
-        print *, "No matching initial field"
-      stop
-    end select
 
     call find_forward_points(t, dt, deplon, deplat, deph)
 
@@ -113,6 +105,9 @@ contains
           if (id == 0) then
             intersect_lon(i, j, k) = deplon(i, j, 1)
             intersect_lat(i, j, k) = deplat(i, j, 1)
+          else if (id == nz) then
+            intersect_lon(i, j, k) = deplon(i, j, nz)
+            intersect_lat(i, j, k) = deplat(i, j, nz)
           else
             h1 = deph(i, j, id)
             h2 = deph(i, j, id + 1)

@@ -82,9 +82,14 @@ contains
     end do
     close(11)
     open(10, file="log.txt")
-    do i = 1, nlat
-      do j = 1, nz
-        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+    !do i = 1, nlat
+    !  do j = 1, nz
+    !    write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
+    !  enddo
+    !enddo
+    do i = 1, nlon
+      do j = 1, nlat
+        write(10, *) lon(i), latitudes(j), gphi(i, j, 25)
       enddo
     enddo
     close(10)
