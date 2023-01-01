@@ -41,7 +41,7 @@ contains
           write(11,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       end do        
     end do
-    call update(0.0d0, deltat)
+    call update(0.5d0*deltat, deltat)
 
   end subroutine nisl_init
 
@@ -246,25 +246,5 @@ contains
       end do
     end do
   end subroutine fd_derivative
-
-  subroutine sph_derivative(f)
-    use legendre_transform_module, only: legendre_analysis, legendre_synthesis, &
-        legendre_synthesis_dlon, legendre_synthesis_dlat, legendre_synthesis_dlonlat
-    implicit none
-    integer(8) :: j, k
-    real(8) :: f(nlon, nlat, nz)
-
-    do k = 1, nz
-      call legendre_analysis(f(:,:,k), sphi_old(:,:,k))
-      call legendre_synthesis_dlon(sphi_old(:, :, k), gphix(:, :, k))
-      call legendre_synthesis_dlat(sphi_old(:, :, k), gphiy(:, :, k))
-      call legendre_synthesis_dlonlat(sphi_old(:, :, k), gphixy(:, :, k))
-    enddo
-
-    do j = 1, nlat
-      gphiy(: ,j, :) = gphiy(:, j, :) * coslatr(j)
-      gphixy(:, j, :) = gphixy(:, j, :) * coslatr(j)
-    end do
-  end subroutine sph_derivative
 
 end module nisl_module

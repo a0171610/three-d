@@ -68,7 +68,7 @@ contains
 
     integer(8) :: i, j, k
 
-    call update(0.0d0, deltat)
+    call update(0.5d0*deltat, deltat)
     write(*, *) 'step = 0 ', "maxval = ", maxval(gphi), 'minval = ', minval(gphi)
     do i = 2, 3
       call update((i-1)*deltat, 2.0d0*deltat)
@@ -107,23 +107,11 @@ contains
     integer(8) :: i, j, k
     real(8), intent(in) :: t, dt
     real(8) :: ans
-    integer(8), allocatable :: id(:, :, :)
     real(8), allocatable :: f(:, :, :)
 
-    allocate(id(nlon, nlat, nz), f(nlon, nlat, nz))
+    allocate(f(nlon, nlat, nz))
 
     call find_forward_points(t-0.5d0*dt, dt, deplon, deplat, depheight)
-
-    do k = 1, nz
-      do i = 1, nlon
-        do j = 1, nlat
-          call check_height(depheight(i, j, k))
-          id(i, j, k) = int(anint(depheight(i, j, k) / dh)) + 1
-          midh(i, j, k) = (height(k) + height(id(i, j, k))) / 2.0d0
-          call check_height(midh(i, j, k))
-        enddo
-      enddo
-    enddo
 
     call find_points()
 
@@ -138,6 +126,9 @@ contains
     call mid_points(t, dt)
 
     call lon_derivative(gphi1, f)
+    do j = 1, nlat
+      f(:, j, :) = f(:, j, :) / cos(latitudes(j))
+    enddo
     call fd_derivative(f)
     call interpolate_set(f)
     call interpolate_setd(gphix, gphiy, gphiz, gphixy, gphixz, gphiyz, gphixyz)
@@ -176,7 +167,6 @@ contains
       enddo
     enddo
 
-    write(*, *) maxval(gum), maxval(gvm), maxval(gwm), minval(gum), minval(gvm), minval(gwm)
     gphi_old(:,:,:) = gphi1(:,:,:)
     gphi1(:,:,:) = gphi(:,:,:)
 
@@ -213,6 +203,8 @@ contains
           zm = (zg + zr) * 0.5d0
           midlon(i, j, k) = modulo(atan2(ym, xm) + pi2, pi2)
           midlat(i, j, k) = asin(zm / sqrt(xm**2 + ym**2 + zm**2))
+          midh(i, j, k) = (height(k) + height(r(i, j, k))) / 2.0d0
+          call check_height(midh(i, j, k))
 
           xdot = (xg - xr) / dt
           ydot = (yg - yr) / dt
@@ -226,7 +218,6 @@ contains
           gum(i, j, k) = u1 - u2
           gvm(i, j, k) = v1 - v2
           gwm(i, j, k) = w1 - w2
-          !write(*, *) i, j, k, w1, w2, height(k), height(r(i, j, k)), depheight(p(i,j,k),q(i,j,k),r(i,j,k))
         enddo
       enddo
     enddo
@@ -320,16 +311,14 @@ contains
 
   subroutine find_points
     use math_module, only: pir=>math_pir, pi=>math_pi
-    use sort_module, only: sort_four_array
     use interpolate_module, only: find_stencil_
     implicit none
     integer(8) :: i, j, k, i1, j1, k1
     real(8) :: dlonr
-    integer(8), allocatable :: p1(:, :, :), q1(:, :, :), r1(:, : ,: )
+    integer(8) :: p1, q1, r1
     real(8), allocatable :: use_dist(:,:,:)
     real(8) :: min_dist, tmp_dist
 
-    allocate(p1(nlon, nlat, nz), q1(nlon, nlat, nz), r1(nlon, nlat, nz))
     allocate(use_dist(nlon, nlat, nz))
     dlonr = 0.5d0*nlon*pir
     use_dist(:, :, :) = 1.0d9
@@ -338,9 +327,27 @@ contains
     q(:, :, :) = -100
     r(:, :, :) = -100
 
+    do j = 1, nlat
+      do i = 1, nlon
+        do k = 1, nz
+          p1 = int(anint( deplon(i, j, k) * dlonr + 1.0d0 ))
+          if ( p1 > nlon ) then
+            p1 = p1 - nlon
+          end if
+          q1 = int(anint( 0.5d0 * (nlat + 1.0d0 - (2.0d0*dble(nlat)+1.0d0)*deplat(i,j,k) / pi) ))  !latitudesは大きい順で詰められているので注意
+          call check_height(depheight(i, j, k))
+          r1 = int(anint(depheight(i, j, k) / dh)) + 1
+          p(p1, q1, r1) = i
+          q(p1, q1, r1) = j
+          r(p1, q1, r1) = k
+        enddo
+      end do
+    end do
+
     do i = 1, nlon
       do j = 1, nlat
         do k = 1, nz
+          if (p(i, j, k) /= -100) cycle
           min_dist = 1.0d9
           do i1 = max(i-1, 1), min(i+1, nlon)
             do j1 = max(j-1, 1), min(j+1, nlat)
