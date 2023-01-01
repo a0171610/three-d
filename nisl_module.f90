@@ -138,7 +138,7 @@ contains
       do i = 1, nlon
         do k = 1, nz
           call check_height(height(id(i, j, k)))
-          call interpolate2d_bicubic(deplon(i,j,k), deplat(i,j,k), depheight(i,j,k), gphi(i,j,k))
+          call interpolate2d_bicubic(deplon(i,j,k), deplat(i,j,k), height(id(i,j,k)), gphi(i,j,k))
         enddo
       enddo
     end do
