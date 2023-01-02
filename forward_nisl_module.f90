@@ -20,7 +20,6 @@ contains
     use interpolate2d_module, only: interpolate2d_init
     use interpolate3d_module, only: interpolate3d_init=>interpolate_init
     use interpolate_module, only: interpolate_init
-    use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(8) :: i, j
@@ -63,7 +62,6 @@ contains
 
   subroutine forward_nisl_timeint()
     use time_module, only: nstep, deltat, hstep
-    use legendre_transform_module, only: legendre_synthesis
     implicit none
 
     integer(8) :: i, j, k
@@ -83,16 +81,16 @@ contains
     end do
     close(11)
     open(10, file="log.txt")
-    !do i = 1, nlat
-    !  do j = 1, nz
-    !    write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
-    !  enddo
-    !enddo
-    do i = 1, nlon
-      do j = 1, nlat
-        write(10, *) lon(i), latitudes(j), gphi(i, j, 25)
+    do i = 1, nlat
+      do j = 1, nz
+        write(10,*) latitudes(i), height(j), gphi(nlon/2, i, j)
       enddo
     enddo
+    !do i = 1, nlon
+    !  do j = 1, nlat
+    !    write(10, *) lon(i), latitudes(j), gphi(i, j, 25)
+    !  enddo
+    !enddo
     close(10)
 
   end subroutine forward_nisl_timeint
@@ -197,7 +195,7 @@ contains
     integer(8) :: i, j, k
     real(8) :: xg, yg, zg, xr, yr, zr, xm, ym, zm
     real(8) :: xdot, ydot, zdot
-    real(8) :: u1, v1, u2, v2, w1, w2
+    real(8) :: u1, v1, u2=0.0d0, v2=0.0d0, w1=0.0d0, w2=0.0d0
 
     do k = 1, nz
       do i = 1, nlon
@@ -274,32 +272,39 @@ contains
   end subroutine fd_derivative
 
   subroutine vertical_derivative(f, fz)
+    use grid_module, only: dh
     implicit none
     integer(8) :: k
     real(8), intent(in) :: f(nlon, nlat, nz)
     real(8), intent(out) :: fz(nlon, nlat, nz)
-    do k = 2, nz-1
-      fz(:, :, k) = (f(:, :, k + 1) - f(:, :, k - 1)) / (height(k+1) - height(k-1))
-    end do
-    fz(:, :, 1) = (f(:, :, 2) - f(:, :, 1)) / (height(2) - height(1))
-    fz(:, :, nz) = (f(:, :, nz) - f(:, :, nz - 1)) / (height(nz) - height(nz-1))
+    do k = 3, nz-2
+      fz(:,:,k) = (-f(:,:,k+2) + 8.0d0*f(:,:,k+1) - 8.0d0*f(:,:,k-1) + f(:,:,k-2)) / (dh*12.0d0)
+    enddo
+    fz(:, :, 2) = (f(:, :, 3) - f(:, :, 1)) / (2.0d0*dh)
+    fz(:, :, nz-1) = (f(:, :, nz) - f(:, :, nz-2)) / (2.0d0*dh)
+    fz(:, :, 1) = (f(:, :, 2) - f(:, :, 1)) / dh
+    fz(:, :, nz) = (f(:, :, nz) - f(:, :, nz - 1)) / dh
   end subroutine vertical_derivative
 
   subroutine lon_derivative(f, fx)
-    use math_module, only: pir=>math_pir
+    use math_module, only: pir=>math_pir, pi=>math_pi
     implicit none
     real(8), intent(in) :: f(nlon, nlat, nz)
     real(8), intent(out) :: fx(nlon, nlat, nz)
     integer(8) :: i, k
-    real(8) :: dlonr
+    real(8) :: dlon
+
+    dlon = 2.0d0*pi / dble(nlon)
 
     do k = 1, nz
-      dlonr = 0.25d0*nlon*pir
-      fx(1,:,k) = dlonr * (f(2,:,k) - f(nlon,:,k))
-      fx(nlon, :, k) = dlonr * (f(1,:,k) - f(nlon-1,:,k))
-      do i=2, nlon-1
-        fx(i,:,k) = dlonr*(f(i+1,:,k) - f(i-1,:,k))
-      end do
+      fx(1,:,k) = (f(2,:,k) - f(nlon,:,k)) / (2.0d0*dlon)
+      fx(nlon, :, k) = (f(1,:,k) - f(nlon-1,:,k)) / (2.0d0*dlon)
+      fx(2,:,k) = (f(3,:,k) - f(1,:,k)) / (2.0d0 * dlon)
+      fx(nlon-1,:,k) = (f(nlon,:,k) - f(nlon-2,:,k)) / (2.0d0 * dlon)
+
+      do i = 3, nlon-2
+        fx(i,:,k) = (-f(i+2,:,k) + 8.0d0*f(i+1,:,k) - 8.0d0*f(i-1,:,k) + f(i-2,:,k)) / (12.0d0 * dlon)
+      enddo
     end do
   end subroutine lon_derivative
 
@@ -317,8 +322,11 @@ contains
       fy(:,1,k) = (gphitmp-f(:,2,k))/(pih+eps-latitudes(2))
       gphitmp = cshift(f(:,nlat,k),nlon/2)
       fy(:,nlat,k) = (gphitmp-f(:,nlat-1,k))/(-pih-eps-latitudes(nlat-1))
-      do j=2, nlat-1
-        fy(:,j,k) = (f(:,j+1,k)-f(:,j-1,k))/(latitudes(j+1)-latitudes(j-1))
+      fy(:,2,k) = (f(:,3,k) - f(:,1,k)) / (latitudes(3) - latitudes(1))
+      fy(:,nlat-1,k) = (f(:,nlat,k)-f(:,nlat-2,k))/(latitudes(nlat)-latitudes(nlat-2))
+      do j=3, nlat-2
+        fy(:,j,k) = (-f(:,j+2,k) + 8.0d0*f(:,j+1,k) - 8.0d0*f(:,j-1,k) + f(:,j-2,k)) / &
+          (3.0d0*(latitudes(j+2)-latitudes(j-2)))
       end do
     end do
   end subroutine lat_derivative
@@ -386,28 +394,13 @@ contains
 
   end subroutine find_points
 
-  function cartesian_dist(x1, y1, z1, x2, y2, z2) result(l)
-    implicit none
-    real(8), intent(in) :: x1, y1, z1, x2, y2, z2
-    real(8) :: l
-
-    l = sqrt((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)
-  end function cartesian_dist
-
   function sphere_dist(lon1, lat1, h1, lon2, lat2, h2) result(l)
     use planet_module, only: planet_radius
+    use sphere_module, only: orthodrome
     implicit none
     real(8) :: lon1, lat1, h1, lon2, lat2, h2
     real(8) :: l
-    real(8) :: x1, y1, z1, x2, y2, z2
 
-    x1 = (planet_radius + h1) * cos(lon1) * cos(lat1)
-    y1 = (planet_radius + h1) * sin(lon1) * cos(lat1)
-    z1 = (planet_radius + h1) * sin(lat1)
-    x2 = (planet_radius + h2) * cos(lon2) * cos(lat2)
-    y2 = (planet_radius + h2) * sin(lon2) * cos(lat2)
-    z2 = (planet_radius + h2) * sin(lat2)
-
-    l = cartesian_dist(x1, y1, z1, x2, y2, z2)
+    l = sqrt((orthodrome(lon1, lat1, lon2, lat2) * planet_radius)**2 + (h1 - h2)**2)
   end function sphere_dist
 end module forward_nisl_module
